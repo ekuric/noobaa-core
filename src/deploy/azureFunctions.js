@@ -172,6 +172,35 @@ class AzureFunctions {
                         uri: 'https://' + storageAccountName + '.blob.core.windows.net/osdisks/' + vmName + '-os.vhd'
                     }
                 },
+                "dataDisks": [
+                    {
+                        "diskSizeGB": 111,
+                        "lun": 0,
+                        "createOption": "Empty",
+                        "name": vmName + 'data0_disk',
+                        "vhd": {
+                                uri: 'https://' + storageAccountName + '.blob.core.windows.net/test/'+vmName+'data0.vhd',
+                        }
+                    }
+                    , {
+                        "diskSizeGB": 120,
+                        "lun": 1,
+                        "createOption": "Empty",
+                        "name": vmName + 'data1_disk',
+                        "vhd": {
+                            uri: 'https://' + storageAccountName + '.blob.core.windows.net/test/'+vmName+'data1.vhd',
+                        }
+                    }
+                    , {
+                        "diskSizeGB": 150,
+                        "lun": 2,
+                        "createOption": "Empty",
+                        "name": vmName + 'data2_disk',
+                        "vhd": {
+                            uri: 'https://' + storageAccountName + '.blob.core.windows.net/test/'+vmName+'data2.vhd',
+                        }
+                    }
+                ],
             },
             networkProfile: {
                 networkInterfaces: [{
