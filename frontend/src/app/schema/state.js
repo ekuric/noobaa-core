@@ -16,6 +16,9 @@ export default {
         },
         internalResources: {
             $ref: '#/def/internalResources'
+        },
+        interactiveHelp: {
+            $ref: '#/def/interactiveHelp'
         }
     },
 };

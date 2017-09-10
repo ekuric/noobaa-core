@@ -6,6 +6,7 @@ import session from './session';
 import objectUploads from './object-uploads';
 import internalResources from './internal-resources';
 import buckets from './buckets';
+import interactiveHelp from './interactive-help';
 import state from './state.js';
 
 const schemas = {
@@ -15,6 +16,7 @@ const schemas = {
     objectUploads,
     internalResources,
     buckets,
+    interactiveHelp,
     state
 };
 

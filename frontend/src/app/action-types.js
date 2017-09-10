@@ -134,3 +134,8 @@ export const FAIL_FETCH_HOST_OBJECTS = 'FAIL_FETCH_HOST_OBJECTS';
 
 // Environment actions.
 export const TOGGLE_PREVIEW_CONTENT = 'TOGGLE_PREVIEW_CONTENT';
+
+// interactive help metadata
+export const  ENSURE_HELP_META = 'ENSURE_HELP_META';
+export const  COMPLETE_ENSURE_HELP_META = 'COMPLETE_ENSURE_HELP_META';
+export const  FAIL_ENSURE_HELP_META = 'FAIL_ENSURE_HELP_META';

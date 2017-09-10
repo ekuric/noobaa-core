@@ -84,7 +84,7 @@ export default function register(ko) {
     ko.components.register('disable-host-storage-warning-modal',        require('./modals/disable-host-storage-warning-modal/disable-host-storage-warning-modal').default);
     ko.components.register('disable-host-last-service-warning-modal',   require('./modals/disable-host-last-service-warning-modal/disable-host-last-service-warning-modal').default);
     ko.components.register('connect-app-modal',                         require('./modals/connect-app-modal/connect-app-modal').default);
-
+    ko.components.register('select-help-topic-modal',                   require('./modals/select-help-topic-modal/select-help-topic-modal').default);
     /** INJECT:modals **/
 
     // -------------------------------

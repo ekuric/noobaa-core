@@ -482,3 +482,16 @@ export function openDisableHostLastServiceWarningModal(host, service) {
     };
 }
 
+export function openSelectHelpTopicModal() {
+    return {
+        type: 'OPEN_MODAL',
+        payload: {
+            component: 'select-help-topic-modal',
+            options: {
+                size: 'medium',
+                title: 'Need Some Help?'
+            }
+        }
+    };
+}
+
