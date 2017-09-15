@@ -20,7 +20,7 @@ import alertsReducer from './alerts-reducer';
 import notificationsReducer from './notificaitons-reducer';
 import topologyReducer from './topology-reducer';
 import hostPartsReducer from './host-parts-reducer';
-import helpMetadataReducer from './help-metadata-reducer';
+import interactiveHelpReducer from './interactive-help-reducer';
 
 export default combineReducers({
     env: envReducer,
@@ -42,5 +42,5 @@ export default combineReducers({
     accounts: accountsReducer,
     objectUploads: objectUploadsReducer,
     topology: topologyReducer,
-    helpMetadata: helpMetadataReducer
+    interactiveHelp: interactiveHelpReducer
 });

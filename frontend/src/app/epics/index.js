@@ -36,7 +36,7 @@ import downloadFile from './download-file';
 import fetchHostObjects from './fetch-host-objects';
 import tryDeleteAccount from './try-delete-account';
 import signOutDeletedUser from './sign-out-deleted-user';
-import ensureHelpMeta from './ensure-help-meta';
+import ensureHelpMetadata from './ensure-help-metadata';
 
 const generalEpics = [
     handleLocationRequests,
@@ -100,8 +100,8 @@ const hostRelatedEpics = [
     toggleHostNodes
 ];
 
-const externalData = [
-    ensureHelpMeta
+const helpRelatedEpics = [
+    ensureHelpMetadata
 ];
 
 // A utility that combine multiple epics into one epic.
@@ -124,5 +124,5 @@ export default _combineEpics([
     ...objectRelatedEpics,
     ...resourceRelatedEpics,
     ...hostRelatedEpics,
-    ...externalData
+    ...helpRelatedEpics
 ]);
