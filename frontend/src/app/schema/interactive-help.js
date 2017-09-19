@@ -1,11 +1,15 @@
 export default {
     type: 'object',
     required: [
-        'metadataLoaded'
+        'metadataLoaded',
+        'selected'
     ],
     properties: {
         metadataLoaded: {
             type: 'boolean'
+        },
+        selected: {
+            type: ['object', 'null']
         }
     }
 };

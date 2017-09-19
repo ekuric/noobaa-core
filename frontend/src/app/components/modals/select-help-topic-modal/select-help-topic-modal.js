@@ -90,7 +90,7 @@ class SelectHelpTopicModalViewModel extends Observer {
             .map(category => ({ label: category.label, value: category }));
         const rows = _filterByKeywords(topicsList, categories, filter.value, selectedCategory.value)
             .map((topic, i) => {
-                const row = this.rows.get(i) || new TopicRowViewModel();
+                const row = this.rows.get(i) || new TopicRowViewModel(this.close);
                 row.onTopic(topic);
                 return row;
             });

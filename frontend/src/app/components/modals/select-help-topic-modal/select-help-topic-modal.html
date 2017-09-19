@@ -19,10 +19,10 @@
 
     <div class="column greedy push-next results-container">
         <ul class="list-no-style legend-items" ko.foreach="rows">
-            <li class="separator">
-                <a class="row content-middle no-outline" ko.click="onSelect">
+            <li class="separator" ko.with="topic">
+                <a class="row content-middle no-outline" ko.click="$parent.onSelect.bind($parent)">
                     <svg-icon class="highlight push-both"
-                        params="name: icon"
+                        params="name: $parent.icon"
                     ></svg-icon>
                     <div class="column">
                         <h3 class="heading3 push-prev-half">{{title}}</h3>

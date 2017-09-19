@@ -14,3 +14,4 @@ export * from './resource-actions';
 export * from './host-actions';
 export * from './account-actions';
 export * from './help-metadata-actions';
+export * from './interactive-help-actions';
