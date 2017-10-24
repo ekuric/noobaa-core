@@ -213,6 +213,8 @@ function install_mongo {
     # create a Mongo 3.4 Repo file
     cp -f ${CORE_DIR}/src/deploy/NVA_build/mongo.repo /etc/yum.repos.d/mongodb-org-3.4.repo
 
+    cp -f ${CORE_DIR}/src/deploy/NVA_build/noobaa_mongo_srv_conf.yaml /etc/noobaa_mongo_srv_conf.yaml
+
     # install the needed RPM
     yum install -y \
 		mongodb-org-3.4.4 \

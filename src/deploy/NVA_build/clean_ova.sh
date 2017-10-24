@@ -87,7 +87,8 @@ rm -f /tmp/nb_upgrade*
 rm -f /tmp/node*
 rm -f /tmp/*.log
 rm -rf /tmp/npm-*
-
+#restore mongo conf file
+cp -f /root/node_modules/noobaa-core/src/deploy/NVA_build/noobaa_mongo_srv_conf.yaml /etc/noobaa_mongo_srv_conf.yaml
 #Clean supervisors
 sudo cp -f /root/node_modules/noobaa-core/src/deploy/NVA_build/noobaa_supervisor.conf /etc/noobaa_supervisor.conf
 sudo cp -f /root/node_modules/noobaa-core/src/deploy/NVA_build/env.orig /root/node_modules/noobaa-core/.env

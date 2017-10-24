@@ -189,6 +189,7 @@ config.MONGO_DEFAULTS = {
     CFG_RSET_NAME: 'config0',
     SHARD_SRV_PORT: '27000',
     COMMON_PATH: '/var/lib/mongo/cluster',
+    MONGO_CONFIG_FILE: '/etc/noobaa_mongo_srv_conf.yaml',
     CONNECT_RETRY_INTERVAL: 3 * 1000,
     CONNECT_MAX_WAIT: 5 * 60 * 1000,
     ROOT_CA_PATH: '/etc/mongo_ssl/root-ca.pem',
