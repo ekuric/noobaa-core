@@ -110,7 +110,7 @@ class BucketDataPlacementFormViewModel extends Observer {
             CLOUD: cloudResources
         };
 
-        const placementRows = placement.resources
+        const placementRows = new Array(25).fill(placement.resources[0])
             .map((item, i) => {
                 const { type, name, usage } = item;
                 const resource = resources[type][name];
@@ -120,7 +120,7 @@ class BucketDataPlacementFormViewModel extends Observer {
             });
 
 
-        const spilloverRows = Object.values(internalResources)
+        const spilloverRows = new Array(25).fill(Object.values(internalResources)[0])
             .map((resource, i) => {
                 const usage = spillover ? spillover.usage : 0;
                 const row = this.spilloverRows.get(i) || new SpilloverRowViewModel();

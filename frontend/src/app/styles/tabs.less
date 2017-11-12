@@ -1,8 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 
 .tabs {
-    .column();
     background-color: @color3;
+    margin-top: 18px;
 
     > nav {
         .row();
@@ -54,33 +54,13 @@
     }
 
     > .tabs-row {
-        position: relative;
-        .row();
-        .greedy();
-        overflow-x: hidden;
-        overflow-y: auto;
+        width: 100%;
 
         > .tab {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            right: 0;
-            transform: translateX(-100%);
-            opacity: 0;
-            overflow: hidden;
-            transition: all 500ms;
+            display: none;
 
             &.selected {
-                left: 0;
-                opacity: 1;
-                overflow: auto;
-                transform: unset;
-
-                ~ .tab {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
+                display: block;
             }
         }
     }
