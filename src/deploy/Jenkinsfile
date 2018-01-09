@@ -87,6 +87,7 @@ node('pipeline') {
             """
         }
 		parallel (
+		stage('Tests') {
 		"account_test": {
             echo 'Doing account tests!'
             sh script: """
@@ -127,7 +128,7 @@ node('pipeline') {
             node $WORKSPACE/src/test/qa/dataset.js --server '${dataset_ip}' --aging_timeout 1 --dataset_size 1024
             """
         }
-		)
+		})
 	} catch (e) {
 		buildResult = "FAILED"
         echo 'build failed with error ' + e
