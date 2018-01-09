@@ -75,22 +75,6 @@ node('pipeline') {
              //        curl -u jackyalbo:711d9303458d34ad56c1a48716c02ee5e286570f -L $JENKINS_URL/Build/job/Build-Package/lastSuccessfulBuild/artifact/*zip*/archive.zip >/tmp/noobaa-NVA-latest.zip
              //    """
 		}
-		stage('Account test') {
-            echo 'Doing account tests!'
-            sh script: """
-            export NVM_DIR=/opt/nvm
-            . /opt/nvm/nvm.sh
-            node $WORKSPACE/src/test/qa/account_test.js --server_ip '${ip}' --system_ip '${ip}'
-            """
-		}
-		stage('Namespace test') {
-            echo 'Loading data to namespace resources!'
-            sh script: """
-            export NVM_DIR=/opt/nvm
-            . /opt/nvm/nvm.sh
-            node $WORKSPACE/src/test/qa/namespace_test.js --server_ip '${ip}'
-            """
-        }
         stage('Setting env file agents rg') {
             sh script: """
             rm .env
@@ -102,23 +86,40 @@ node('pipeline') {
             echo 'CLIENT_ID=199522b3-407d-45eb-b7fb-023d21ab6406' >> .env
             """
         }
-        stage('Rebuild replicas test') {
+		parallel (
+		"account_test": {
+            echo 'Doing account tests!'
+            sh script: """
+            export NVM_DIR=/opt/nvm
+            . /opt/nvm/nvm.sh
+            node $WORKSPACE/src/test/qa/account_test.js --server_ip '${ip}' --system_ip '${ip}'
+            """
+		},
+        "namespace": {
+            echo 'Loading data to namespace resources!'
+            sh script: """
+            export NVM_DIR=/opt/nvm
+            . /opt/nvm/nvm.sh
+            node $WORKSPACE/src/test/qa/namespace_test.js --server_ip '${ip}'
+            """
+        },
+        "replica_test": {
             echo 'Uploading data with switching off agents and checking files chunks and parts'
             sh script: """
             export NVM_DIR=/opt/nvm
             . /opt/nvm/nvm.sh
             node $WORKSPACE/src/test/qa/rebuild_replicas_test.js --resource '${agentsResource}' --vnet '${agentsVnet}' --storage '${agentsStorage}' --server_ip '${ip}' --failed_agents_number 2 --agents_number 10
             """
-        }
-        stage('Data availability test') {
+        },
+        "data_availability": {
             echo 'Uploading data with switching off agents and checking files'
             sh script: """
             export NVM_DIR=/opt/nvm
             . /opt/nvm/nvm.sh
             node $WORKSPACE/src/test/qa/data_availability_test.js --resource '${agentsResource}' --vnet '${agentsVnet}' --storage '${agentsStorage}' --server_ip '${yulia_ip}' --iterationsNumber 2 --failed_agents_number 1 --agents_number 6
             """
-        }
-        stage('dataset test') {
+        },
+        "dataset": {
             echo 'Doing clean ova and set system config'
             sh script: """
             export NVM_DIR=/opt/nvm
@@ -126,6 +127,7 @@ node('pipeline') {
             node $WORKSPACE/src/test/qa/dataset.js --server '${dataset_ip}' --aging_timeout 1 --dataset_size 1024
             """
         }
+		)
 	} catch (e) {
 		buildResult = "FAILED"
         echo 'build failed with error ' + e
