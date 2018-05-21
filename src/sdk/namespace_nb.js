@@ -2,7 +2,10 @@
 'use strict';
 
 const _ = require('lodash');
+
 // const P = require('../util/promise');
+const blob_translator = require('./blob_translator');
+
 
 class NamespaceNB {
 
@@ -48,6 +51,18 @@ class NamespaceNB {
         return object_sdk.object_io.upload_object(params);
     }
 
+    ////////////////////////
+    // BLOCK BLOB UPLOADS //
+    ////////////////////////
+
+    upload_blob_block(params, object_sdk) {
+        return blob_translator.upload_blob_block(params, object_sdk);
+    }
+
+    commit_blob_block_list(params, object_sdk) {
+        return blob_translator.commit_blob_block_list(params, object_sdk);
+    }
+
     /////////////////////////////
     // OBJECT MULTIPART UPLOAD //
     /////////////////////////////
@@ -62,6 +77,7 @@ class NamespaceNB {
             client: object_sdk.rpc_client,
             bucket: this.target_bucket,
         }, params);
+        console.log(`DZDZ2: params = `, params);
         return object_sdk.object_io.upload_multipart(params);
     }
 

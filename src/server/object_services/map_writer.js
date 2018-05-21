@@ -309,10 +309,12 @@ function complete_object_parts(obj, multiparts_req) {
         .spread((parts, multiparts) => {
             if (!multiparts) return process_next_parts(parts);
             const parts_by_mp = _.groupBy(parts, 'multipart');
+            console.log(`DZDZ3: parts of obj(${obj}) = `, parts);
             const md5 = crypto.createHash('md5');
             for (const multipart of multiparts) {
                 md5.update(multipart.md5_b64, 'base64');
                 const mp_parts = parts_by_mp[multipart._id];
+                console.log(`DZDZ4: mp_parts =`, mp_parts);
                 process_next_parts(mp_parts);
             }
             multipart_etag = md5.digest('hex') + '-' + multiparts.length;

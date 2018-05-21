@@ -8,6 +8,7 @@ const util = require('util');
 const P = require('../util/promise');
 const dbg = require('../util/debug_module')(__filename);
 const s3_utils = require('../endpoint/s3/s3_utils');
+const blob_translator = require('./blob_translator');
 
 class NamespaceS3 {
 
@@ -130,6 +131,18 @@ class NamespaceS3 {
             });
     }
 
+    ////////////////////////
+    // BLOCK BLOB UPLOADS //
+    ////////////////////////
+
+    upload_blob_block(params, object_sdk) {
+        return blob_translator.upload_blob_block(params, object_sdk);
+    }
+
+    commit_blob_block_list(params, object_sdk) {
+        return blob_translator.commit_blob_block_list(params, object_sdk);
+    }
+
     /////////////////////////////
     // OBJECT MULTIPART UPLOAD //
     /////////////////////////////
@@ -152,8 +165,13 @@ class NamespaceS3 {
 
     upload_multipart(params, object_sdk) {
         dbg.log0('NamespaceS3.upload_multipart:', this.bucket, inspect(params));
+        let CopySource;
         if (params.copy_source) {
-            throw new Error('NamespaceS3.upload_multipart: copy part not yet supported');
+            if (params.copy_source.bucket === this.bucket) {
+                CopySource = `/${params.bucket}/${params.key}`;
+            } else {
+                throw new Error('NamespaceS3.upload_multipart: copy part between buckets not yet supported');
+            }
         }
         return this.s3.uploadPart({
                 Key: params.key,
@@ -161,6 +179,7 @@ class NamespaceS3 {
                 PartNumber: params.num,
                 Body: params.source_stream,
                 ContentLength: params.size,
+                CopySource
             })
             .promise()
             .then(res => {

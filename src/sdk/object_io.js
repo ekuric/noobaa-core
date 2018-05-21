@@ -245,7 +245,11 @@ class ObjectIO {
                     bucket: params.bucket,
                     key: params.key,
                     // sending part.chunk_id so no need for part.chunk info
-                    parts: _.map(parts, p => _.omit(p, 'chunk', 'multipart_id')),
+                    parts: _.map(parts, p => {
+                        const new_part = _.omit(p, 'chunk', 'multipart_id');
+                        new_part.multipart_id = complete_params.multipart_id;
+                        return new_part;
+                    }),
                 });
             });
     }

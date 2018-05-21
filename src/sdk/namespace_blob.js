@@ -12,6 +12,13 @@ const dbg = require('../util/debug_module')(__filename);
 const blob_utils = require('../endpoint/blob/blob_utils');
 const azure_storage = require('../util/azure_storage_wrap');
 
+
+const MAP_BLOCK_LIST_TYPE = Object.freeze({
+    uncommitted: 'UncommittedBlocks',
+    latest: 'LatestBlocks',
+    committed: 'CommittedBlocks'
+});
+
 class NamespaceBlob {
 
     constructor({ connection_string, container, proxy }) {
@@ -215,6 +222,44 @@ class NamespaceBlob {
                 return this._get_blob_md(obj, params.bucket);
             });
     }
+
+
+    ////////////////////////
+    // BLOCK BLOB UPLOADS //
+    ////////////////////////
+
+    async upload_blob_block(params) {
+        dbg.log0('NamespaceBlob.upload_blob_block:',
+            this.container,
+            inspect(_.omit(params, 'source_stream'))
+        );
+        if (params.copy_source) {
+            throw new Error('NamespaceBlob.upload_object: copy object not yet supported');
+        }
+
+        await P.fromCallback(callback =>
+            this.blob.createBlockFromStream(
+                params.blockid,
+                this.container,
+                params.key,
+                params.source_stream,
+                params.size, // streamLength really required ???
+                callback)
+        );
+    }
+
+    async commit_blob_block_list(params) {
+        // node sdk does not support the full rest api capability to mix committed\uncommited blocks
+        // if we send both committed and uncommitted lists we can't control the order.
+        // for now if there is a mix sent by the client, convert all to latest which is the more common case.
+        const is_mix = _.uniqBy(params.block_list, 'type').length > 1;
+        const list_to_use = is_mix ? 'LatestBlocks' : MAP_BLOCK_LIST_TYPE[params.block_list[0].type];
+        const block_list = {};
+        block_list[list_to_use] = params.block_list.map(block => block.blockid);
+        return P.fromCallback(callback => this.blob.commitBlocks(params.bucket, params.key, block_list, callback));
+    }
+
+
 
     /////////////////////////////
     // OBJECT MULTIPART UPLOAD //

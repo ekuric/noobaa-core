@@ -339,6 +339,21 @@ class ObjectSDK {
             .then(ns => ns.abort_object_upload(params, this));
     }
 
+
+    ////////////////////////
+    // BLOCK BLOB UPLOADS //
+    ////////////////////////
+
+    async upload_blob_block(params) {
+        const ns = await this._get_bucket_namespace(params.bucket);
+        return ns.upload_blob_block(params, this);
+    }
+
+    async commit_blob_block_list(params) {
+        const ns = await this._get_bucket_namespace(params.bucket);
+        return ns.commit_blob_block_list(params, this);
+    }
+
     ///////////////////
     // OBJECT DELETE //
     ///////////////////

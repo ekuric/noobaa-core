@@ -224,7 +224,7 @@ class InternalDebugLogger {
                 name: 'file_transp',
                 level: 'ERROR',
                 showLevel: false,
-                filename: 'noobaa.log',
+                filename: `noobaa_${process.pid}.log`,
                 dirname: './logs/',
                 json: false,
                 maxsize: (10 * 1024 * 1024),

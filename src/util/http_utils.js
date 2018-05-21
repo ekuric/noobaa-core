@@ -176,7 +176,11 @@ function parse_request_body(req, options) {
         throw new options.ErrorClass(options.error_missing_body);
     }
     if (options.body.type === 'xml') {
-        return P.fromCallback(callback => xml2js.parseString(req.body, callback))
+        const xml_options = options.body.preserve_order ? {
+            preserveChildrenOrder: true,
+            explicitChildren: true
+        } : {};
+        return P.fromCallback(callback => xml2js.parseString(req.body, xml_options, callback))
             .then(data => {
                 req.body = data;
             })
@@ -275,6 +279,7 @@ function get_unsecured_http_agent(endpoint, proxy) {
         new http.Agent();
 }
 
+exports.parse_request_body = parse_request_body;
 exports.parse_url_query = parse_url_query;
 exports.parse_client_ip = parse_client_ip;
 exports.get_md_conditions = get_md_conditions;
