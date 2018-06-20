@@ -8,20 +8,22 @@ import { randomString } from 'utils/string-utils';
 class DeleteButtonViewModel {
     constructor({
         id = randomString(),
-        group = ko.observable(),
-        onDelete,
+        active = ko.observable(),
         subject,
         tooltip,
-        disabled = false
+        disabled = false,
+        onDelete,
+        onToggle
     }) {
         this.id = id;
         this.onDelete = isFunction(onDelete) ? onDelete : noop;
         this.disabled = disabled;
-
-        this.isActive = ko.pureComputed({
-            read: () => group() === ko.unwrap(id),
-            write: val => group(val ? ko.unwrap(id) : null)
-        });
+        this.isActive = isFunction(onToggle) ?
+            this.isActive = ko.pureComputed({
+                read: active,
+                write: val => onToggle(val ? ko.unwrap(id) : null)
+            }) :
+            active;
 
         this.tooltip = ko.pureComputed(
             () => {
@@ -60,8 +62,8 @@ class DeleteButtonViewModel {
         );
     }
 
-    onActivate() {
-        this.isActive(true);
+    onToggle() {
+        this.isActive.toggle();
     }
 
     onConfirm() {

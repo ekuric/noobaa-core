@@ -6,7 +6,7 @@ import { stringifyAmount } from  'utils/string-utils';
 import { realizeUri } from 'utils/browser-utils';
 
 export default class BucketRowViewModel {
-    constructor({ deleteGroup, onDelete }) {
+    constructor({ onSelectForDelete, onDelete }) {
         this.state = ko.observable();
         this.name = ko.observable();
         this.objectCount = ko.observable();
@@ -15,13 +15,14 @@ export default class BucketRowViewModel {
         this.deleteButton = {
             subject: 'bucket',
             id: ko.observable(),
+            active: ko.observable(),
             tooltip: 'Delete Bucket',
-            group: deleteGroup,
+            onToggle: onSelectForDelete,
             onDelete: onDelete
         };
     }
 
-    onBucket(bucket, baseUri) {
+    onBucket(bucket, baseUri, selectedForDelete) {
         const name = {
             text: bucket.name,
             href: realizeUri(baseUri, { bucket: bucket.name })
@@ -41,5 +42,6 @@ export default class BucketRowViewModel {
         this.readPolicy(readPolicy);
         this.writePolicy(writeTo);
         this.deleteButton.id(bucket.name);
+        this.deleteButton.active(selectedForDelete === bucket.name);
     }
 }

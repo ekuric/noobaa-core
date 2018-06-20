@@ -21,7 +21,7 @@ const statusMapping = deepFreeze({
 });
 
 export default class ObjectRowViewModel {
-    constructor({ baseRoute, deleteGroup, onDelete }) {
+    constructor({ baseRoute, onSelectForDelete, onDelete }) {
         this.baseRoute = baseRoute;
         this.onObjectDelete = null;
         this.state = ko.observable();
@@ -34,13 +34,14 @@ export default class ObjectRowViewModel {
             subject: 'object',
             tooltip: ko.observable(),
             disabled: ko.observable(),
+            active: ko.observable(),
             id: ko.observable(),
-            group: deleteGroup,
+            onToggle: onSelectForDelete,
             onDelete: () => onDelete(...this.deleteArgs())
         };
     }
 
-    onState(obj, id, isNotOwner, onDeleteArgs) {
+    onState(obj, id, isNotOwner, onDeleteArgs, selectedForDelete) {
         const deleteTooltip = isNotOwner ? 'This operation is only available for the system owner' : '';
         const size = obj.uploadId ? '...' : formatSize(obj.size.original);
         const creationTime = moment(obj.createTime).format(timeShortFormat);
@@ -60,6 +61,7 @@ export default class ObjectRowViewModel {
         this.creationTime(creationTime);
         this.size(size);
         this.deleteButton.id(id);
+        this.deleteButton.active(id === selectedForDelete);
         this.deleteButton.disabled(isNotOwner);
         this.deleteButton.tooltip(deleteTooltip);
     }

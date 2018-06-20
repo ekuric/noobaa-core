@@ -132,13 +132,9 @@ class BucketObjectsTableViewModel extends Observer {
         this.filter = ko.observable();
         this.sorting = ko.observable();
         this.page = ko.observable();
+        this.selectedForDelete = '';
         this.emptyMessage = ko.observable();
-        this.selectedForDelete = ko.observable();
         this.bucketObjects = {};
-        this.deleteGroup = ko.pureComputed({
-            read: this.selectedForDelete,
-            write: val => this.onSelectForDelete(val)
-        });
 
         this.observe(
             state$.pipe(get('location')),
@@ -187,7 +183,7 @@ class BucketObjectsTableViewModel extends Observer {
         this.filter(filter);
         this.sorting({ sortBy, order: Number(order) });
         this.page(Number(page));
-        this.selectedForDelete(selectedForDelete);
+        this.selectedForDelete = selectedForDelete;
         this.emptyMessage(emptyMessage);
 
         action$.next(fetchObjects(
@@ -225,7 +221,7 @@ class BucketObjectsTableViewModel extends Observer {
         } : null;
         const rowParams = {
             baseRoute: this.baseRoute,
-            deleteGroup: this.deleteGroup,
+            onSelectForDelete: this.onSelectForDelete.bind(this),
             onDelete: this.onDeleteBucketObject.bind(this)
         };
         const modeFilterOptions = _getStateFilterOptions(counters);
@@ -244,7 +240,8 @@ class BucketObjectsTableViewModel extends Observer {
                     bucketObjects.items[bucketObjectKey],
                     bucketObjectKey,
                     !account.isOwner,
-                    [bucket, key, uploadId]
+                    [bucket, key, uploadId],
+                    this.selectedForDelete
                 );
                 return row;
             });
@@ -295,7 +292,7 @@ class BucketObjectsTableViewModel extends Observer {
             filter = this.filter(),
             sorting = this.sorting(),
             page = this.page(),
-            selectedForDelete = this.selectedForDelete(),
+            selectedForDelete = this.selectedForDelete,
             stateFilter = this.stateFilter()
         } = params;
 
@@ -315,8 +312,7 @@ class BucketObjectsTableViewModel extends Observer {
     }
 
     onSelectForDelete(selected) {
-        const selectedForDelete = this.selectedForDelete() === selected ? null : selected;
-        this._query({ selectedForDelete });
+        this._query({ selectedForDelete: selected });
     }
 
     onDeleteBucketObject(bucket, key, uploadId) {
