@@ -130,7 +130,7 @@ class PoolsTableViewModel extends Observer {
         const rowParams = {
             baseRoute: realizeUri(routes.pool, { system }, {}, true),
             onSelectForDelete: this.onSelectForDelete.bind(this),
-            onDelete: this.onDeletePool.bind(this),
+            onDelete: this.onDeletePool.bind(this)
         };
 
         const filteredRows = poolList
