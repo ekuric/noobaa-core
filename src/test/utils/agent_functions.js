@@ -102,8 +102,9 @@ async function createAgentsFromMap(azf, server_ip, storage, vnet, exclude_drives
     const agentConf = await getAgentConf(server_ip, exclude_drives);
     await P.map(agents_to_create, async name => {
         try {
-            const os = await azf.getImagesfromOSname(agentmap.get(name));
-            if (os.hasImage) {
+            const os = agentmap.get(name);
+            const { hasImage } = await azf.getImagesfromOSname(os);
+            if (hasImage) {
                 await azf.createAgentFromImage({
                     vmName: name,
                     vmSize: 'Standard_B2s',
