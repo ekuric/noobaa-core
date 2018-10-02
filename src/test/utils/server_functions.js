@@ -106,6 +106,24 @@ async function remove_swap_on_azure(server_ip, secret) {
     }
 }
 
+async function map_new_disk_linux(agent_ip) {
+    console.log(`LMLM:: map_new_disk_linux`);
+    try {
+        const client_ssh = await ssh.ssh_connect({
+            host: agent_ip,
+            //  port: 22,
+            username: 'notadmin',
+            password: '0bj3ctSt0r3!',
+            keepaliveInterval: 5000,
+        });
+        await ssh.ssh_exec(client_ssh, 'sudo /usr/local/noobaa/src/tools/platform/map_new_disk.sh &> /dev/null');
+        await client_ssh.end();
+    } catch (e) {
+        console.warn(`agent_ip: ${agent_ip}`);
+        throw new Error(`map_new_disk_linux failed: ${e}`);
+    }
+}
+
 //will wait until the server reconnects via rpc
 async function wait_server_reconnect(server_ip) {
     console.log(`Connecting to the server via rpc`);
@@ -320,6 +338,7 @@ async function clean_pre_upgrade_leftovers(params) {
 exports.enable_noobaa_login = enable_noobaa_login;
 exports.set_first_install_mark = set_first_install_mark;
 exports.clean_ova = clean_ova;
+exports.map_new_disk_linux = map_new_disk_linux;
 exports.wait_server_reconnect = wait_server_reconnect;
 exports.validate_activation_code = validate_activation_code;
 exports.create_system_and_check = create_system_and_check;

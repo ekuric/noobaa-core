@@ -9,7 +9,7 @@ const af = require('../utils/agent_functions');
 const dbg = require('../../util/debug_module')(__filename);
 const AzureFunctions = require('../../deploy/azureFunctions');
 const { BucketFunctions } = require('../utils/bucket_functions');
-dbg.set_process_name('data_avilability');
+dbg.set_process_name('data_availability');
 
 //define colors
 const NC = "\x1b[0m";
@@ -153,7 +153,7 @@ function set_fileSize() {
     if (dataset_size - current_size === 0) {
         rand_size = 1;
         //if we choose file size grater then the remaining space for the dataset,
-        //set it to be in the size that complet the dataset size.
+        //set it to be in the size that complete the dataset size.
     } else if (rand_size > dataset_size - current_size) {
         rand_size = dataset_size - current_size;
     }
@@ -182,7 +182,7 @@ async function uploadAndVerifyFiles() {
 }
 
 async function clean_up_dataset() {
-    console.log('runing clean up files from bucket ' + bucket);
+    console.log('running clean up files from bucket ' + bucket);
     try {
         await s3ops.delete_all_objects_in_bucket(bucket, true);
     } catch (err) {
@@ -242,7 +242,7 @@ async function run_main() {
             }
             const created_agents = await af.createAgentsFromMap(azf, server_ip, storage, vnet, [], agents);
             if (created_agents.length !== agents_number) {
-                throw new Error(`created ${created_agents.length} insted of ${agents_number}, Exiting.`);
+                throw new Error(`created ${created_agents.length} instead of ${agents_number}, Exiting.`);
             }
         } else {
             await af.clean_agents(azf, server_ip, suffix);

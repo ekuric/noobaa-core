@@ -7,7 +7,7 @@ const { S3OPS } = require('../utils/s3ops');
 const af = require('../utils/agent_functions');
 const bf = require('../utils/bucket_functions');
 const dbg = require('../../util/debug_module')(__filename);
-dbg.set_process_name('data_avilability');
+dbg.set_process_name('data_resiliency');
 
 //define colors
 const YELLOW = "\x1b[33;1m";
@@ -125,7 +125,7 @@ function set_fileSize() {
     if (dataset_size - current_size === 0) {
         rand_size = 1;
         //if we choose file size grater then the remaining space for the dataset,
-        //set it to be in the size that complet the dataset size.
+        //set it to be in the size that complete the dataset size.
     } else if (rand_size > dataset_size - current_size) {
         rand_size = dataset_size - current_size;
     }
@@ -167,7 +167,7 @@ async function readFiles() {
 }
 
 function clean_up_dataset() {
-    console.log('runing clean up files from bucket ' + bucket);
+    console.log('running clean up files from bucket ' + bucket);
 
     return s3ops.delete_all_objects_in_bucket(bucket, true)
         .catch(err => console.error(`Errors during deleting `, err));
@@ -186,7 +186,7 @@ function stopAgentsAndCheckFiles() {
 
 async function run_main() {
     return azf.authenticate()
-        .then(() => bf.changeTierSetting(server_ip, bucket, data_frags, parity_frags, replicas))
+        .then(() => bf.changeTierSettingForBucket(server_ip, bucket, data_frags, parity_frags, replicas))
         .then(() => af.getTestNodes(server_ip, suffix))
         .then(res => {
             if ((use_existing_env) && (res)) {

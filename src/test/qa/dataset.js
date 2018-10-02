@@ -15,6 +15,7 @@ const dbg = require('../../util/debug_module')(__filename);
 require('seedrandom');
 
 const test_name = 'dataset';
+const old_dbg_process_name = dbg.get_process_name();
 dbg.set_process_name(test_name);
 
 module.exports = {
@@ -61,8 +62,8 @@ const UNIT_MAPPING = {
     }
 };
 
-const DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
-const JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
+let DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
+let JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
 const CFG_MARKER = 'DATASETCFG-';
 const ACTION_MARKER = 'ACT-';
 
@@ -697,6 +698,8 @@ async function run_multi_delete(params) {
 function init_parameters({ dataset_params, report_params }) {
     TEST_STATE = { ...TEST_STATE_INITIAL };
     TEST_CFG = _.defaults(_.pick(dataset_params, _.keys(TEST_CFG)), TEST_CFG);
+    DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
+    JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
 
     update_dataset_sizes();
     const suite_name = report_params.suite_name || test_name;
@@ -712,7 +715,10 @@ async function upload_new_files() {
     console.timeEnd('dataset upload');
 }
 
-function run_test(throw_on_fail) {
+async function run_test(throw_on_fail) {
+    if (old_dbg_process_name !== test_name) {
+        dbg.set_process_name(test_name);
+    }
     return P.resolve()
         .then(() => log_journal_file(`${CFG_MARKER}${DATASET_NAME}-${JSON.stringify(TEST_CFG)}`))
         .then(() => upload_new_files()
@@ -749,6 +755,7 @@ function run_test(throw_on_fail) {
             })
             .then(() => {
                 console.log(`Everything finished with success!`);
+                dbg.set_process_name(old_dbg_process_name);
                 if (!TEST_CFG.no_exit_on_success) process.exit(0);
             })
             .catch(async err => {

@@ -516,14 +516,20 @@ async function createRandomAgents(azf, server_ip, storage, resource_vnet, amount
 async function manipulateLocalDisk(params) {
     const ssh_client = await ssh_functions.ssh_connect({
         host: params.ip,
-        username: 'noobaaroot',
+        username: params.username || 'noobaaroot',
         password: params.secret,
         keepaliveInterval: 5000,
     });
-    if (params.sizeMB) {
-        await ssh_functions.ssh_exec(ssh_client, `sudo bash -c "fallocate -l ${params.sizeMB}M /tmp/manipulateLocalDisk.dat"`);
+    let path;
+    if (params.path) {
+        path = params.path;
     } else {
-        await ssh_functions.ssh_exec(ssh_client, `sudo bash -c "rm -f /tmp/manipulateLocalDisk.dat"`);
+        path = '/tmp';
+    }
+    if (params.sizeMB) {
+        await ssh_functions.ssh_exec(ssh_client, `sudo bash -c "fallocate -l ${params.sizeMB}M ${path}/manipulateLocalDisk.dat"`);
+    } else {
+        await ssh_functions.ssh_exec(ssh_client, `sudo bash -c "rm -f ${path}/manipulateLocalDisk.dat"`);
     }
     await ssh_functions.ssh_exec(ssh_client, `sudo bash -c "sync"`);
 }
