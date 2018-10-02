@@ -18,7 +18,17 @@ class BucketFunctions {
 
     async createBucket(name) {
         try {
-            let buck = await this._client.bucket.create_bucket({ name });
+            const buck = await this._client.bucket.create_bucket({ name });
+            return buck;
+        } catch (err) {
+            console.log('Create bucket ERR', err);
+            throw err;
+        }
+    }
+
+    async createBucketWithPolicy(name, tiering) {
+        try {
+            const buck = await this._client.bucket.create_bucket({ name, tiering });
             return buck;
         } catch (err) {
             console.log('Create bucket ERR', err);
@@ -35,7 +45,18 @@ class BucketFunctions {
         }
     }
 
-    async changeTierSetting(bucket, data_frags, parity_frags, replicas) {
+    async updateBucketForTieringPolicy(bucket, tier_policy_name) {
+        try {
+            await this._client.bucket.update_bucket({ name: bucket, tiering: tier_policy_name });
+            await this.report_success(`Update_bucket_tier_policy`);
+        } catch (err) {
+            await this.report_fail(`Update_bucket_tier_policy`);
+            console.log('Update bucket tier policy ERR', err);
+            throw err;
+        }
+    }
+
+    async changeTierSettingForBucket(bucket, data_frags, parity_frags, replicas) {
         if (replicas && (data_frags || parity_frags)) {
             throw new Error('Both erasure coding and replicas cannot be set simultaneously ');
         } else if (!replicas && !(data_frags && parity_frags)) {
@@ -70,7 +91,7 @@ class BucketFunctions {
                 name: bucket_name,
                 quota: {
                     size,
-                    unit //'GIGABYTE', 'TERABYTE', 'PETABYTE'
+                    unit, //'GIGABYTE', 'TERABYTE', 'PETABYTE'
                 }
             });
         } catch (err) {
@@ -107,17 +128,17 @@ class BucketFunctions {
         }
     }
 
-    async checkAvilableSpace(bucket_name) {
-        console.log('Checking avilable space in bucket ' + bucket_name);
+    async checkAvailableSpace(bucket_name) {
+        console.log('Checking available space in bucket ' + bucket_name);
         try {
             const system_info = await this._client.system.read_system({});
             const buckets = system_info.buckets;
             const indexBucket = buckets.findIndex(values => values.name === bucket_name);
-            const avilable_space = buckets[indexBucket].data.available_for_upload;
-            console.log(`Avilable space in bucket ${bucket_name} is ${avilable_space / 1024 / 1024} MB`);
-            return avilable_space;
+            const available_space = buckets[indexBucket].data.available_for_upload;
+            console.log(`Available space in bucket ${bucket_name} is ${available_space / 1024 / 1024} MB`);
+            return available_space;
         } catch (err) {
-            console.log(`FAILED to check avilable space in bucket`, err);
+            console.log(`FAILED to check available space in bucket`, err);
             throw err;
         }
     }
