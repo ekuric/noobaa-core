@@ -7,7 +7,8 @@ import { hexToRgb } from 'utils/color-utils';
 import { getFormatter } from 'utils/chart-utils';
 import style from 'style';
 
-const { PI, max, pow, sqrt, atan2 } = Math;
+const { PI, max, pow, sqrt, atan2, cos, sin } = Math;
+const PI2 = 2 * PI;
 
 const defaultRadius = 84;
 const defaultLineWidth = 20;
@@ -32,6 +33,29 @@ const sumLabelTextStyle = deepFreeze({
     weight: style['font-regular'],
     color: style['color7']
 });
+
+const tooltipPresets = deepFreeze([
+    {
+        angle: 1/8 * PI2,
+        position: 'after'
+    },
+    {
+        angle: 3/8 * PI2,
+        position: 'below'
+    },
+    {
+        angle: 5/8 * PI2,
+        position: 'before'
+    },
+    {
+        angle: 7/8 * PI2,
+        position: 'above'
+    },
+    {
+        angle: PI2,
+        position: 'after'
+    }
+]);
 
 
 function _normalizeValues(values) {
@@ -196,18 +220,35 @@ class PieChartViewModel {
             )
         );
 
-        this.total = ko.pureComputed(
-            () => values.reduce(
+        this.total = ko.pureComputed(() =>
+            values.reduce(
                 (sum, entry) => sum + ko.unwrap(entry.value),
                 0
             )
         );
 
-        const normalized = ko.pureComputed(
-            () => _normalizeValues(
+        const normalized = ko.pureComputed(() =>
+            _normalizeValues(
                 values.map(entry => ko.unwrap(entry.value))
             )
         );
+
+        const tooltips = ko.pureComputed(() => {
+            const r = ko.unwrap(radius);
+            let offset = 0;
+            return normalized().map((ratio, i) => {
+                const { tooltip, label, value } = ko.unwrap(values[i]);
+                const angle = (baseAngle + (offset + (ratio / 2)) * PI2) % PI2;
+                const coords = [r * (1 + cos(angle)), r * (1 + sin(angle))];
+                const { position } = tooltipPresets.find(preset => angle < preset.angle);
+                const text = tooltip ?
+                    ko.unwrap(tooltip) :
+                    `${ko.unwrap(label)}: ${ko.unwrap(value)}`;
+
+                offset += ratio;
+                return { coords, position, text };
+            });
+        });
 
         this.values = makeArray(
             values.length,
@@ -220,6 +261,12 @@ class PieChartViewModel {
                 }
             })
         );
+
+
+        this.tooltip = ko.pureComputed(() => {
+            const index = this.hoveredIndex();
+            return index === -1 ? null : tooltips()[index];
+        });
     }
 
     onDraw(ctx) {
@@ -322,18 +369,21 @@ class PieChartViewModel {
         const len = sqrt(pow(x, 2) + pow(y, 2));
 
         if (radius - lineWidth <= len && len <= radius) {
-            const PI2 = PI * 2;
             const rad = (atan2(y, x) + PI2 - baseAngle) % PI2;
             this.mouseLocation(rad / PI2);
 
         } else {
             this.mouseLocation(-1);
         }
+
+        return true;
     }
 
     onMouseLeave() {
         if (!ko.unwrap(this.enableHover)) return;
         this.mouseLocation(-1);
+
+        return true;
     }
 }
 

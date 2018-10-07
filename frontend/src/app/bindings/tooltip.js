@@ -25,9 +25,9 @@ const vm = ko.observable(hiddenTooltipData);
 currTarget.subscribe(target => {
     if (target) {
         const { element, params } = target;
-        const { template, position, align, breakWords, maxWidth } = params;
+        const { template, position, align, breakWords, maxWidth, coords } = params;
         const winSize = { width: global.innerWidth, height: global.innerHeight };
-        const pos = _calcScreenPosition(position, element.getBoundingClientRect(), winSize);
+        const pos = _calcScreenPosition(position, element.getBoundingClientRect(), winSize, coords);
         const style = { display: 'block', ...pos, maxWidth };
         const css = [
             position,
@@ -84,24 +84,37 @@ function _toPx(val) {
 function _normalizeValue(value) {
     const {
         text = value,
+        coords,
         position,
         align,
         breakWords,
         template,
-        maxWidth
+        maxWidth,
     } = value || {};
 
     return {
         template: _getTemplate(template, text),
+        coords: coords,
         position: positions.includes(position) ? position : 'below',
         align: alignments.includes(align) ? align : 'center',
         breakWords: Boolean(breakWords),
         maxWidth: maxWidth && `${maxWidth}px`
+
     };
 }
 
-function _calcScreenPosition(position, boundingRect, winSize) {
+function _calcScreenPosition(position, boundingRect, winSize, coords) {
     const { top, right, bottom, left } = boundingRect;
+    if (Array.isArray(coords)) {
+        const [x = 0, y = 0] = coords;
+        return {
+            top: _toPx(top + y),
+            right: 'auto',
+            bottom: 'auto',
+            left: _toPx(left + x)
+        };
+    }
+
     const centerX = (left + right) / 2;
     const centerY = (top + bottom) / 2;
     const leftSideOfScreen = centerX <= winSize.width / 2;
