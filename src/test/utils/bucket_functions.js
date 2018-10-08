@@ -35,7 +35,18 @@ class BucketFunctions {
         }
     }
 
-    async changeTierSetting(bucket, data_frags, parity_frags, replicas) {
+    async updateBucketForTieringPolicy(bucket, tier_policy_name) {
+        try {
+            await this._client.bucket.update_bucket({ name: bucket, tiering: tier_policy_name });
+            await this.report_success(`Update__bucket_tier_polict`);
+        } catch (err) {
+            await this.report_fail(`Update__bucket_tier_polict`);
+            console.log('Update bucket tier policy ERR', err);
+            throw err;
+        }
+    }
+
+    async changeTierSettingForBucket(bucket, data_frags, parity_frags, replicas) {
         if (replicas && (data_frags || parity_frags)) {
             throw new Error('Both erasure coding and replicas cannot be set simultaneously ');
         } else if (!replicas && !(data_frags && parity_frags)) {

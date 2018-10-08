@@ -20,9 +20,9 @@ class TierFunction {
         }
     }
 
-    async createTier(name) {
+    async createTier(name, attached_pools) {
         try {
-            const tier = await this._client.tier.create_tier({ name });
+            const tier = await this._client.tier.create_tier({ name, attached_pools });
             await this.report_success(`Create_Tier`);
             return tier;
         } catch (err) {
@@ -44,7 +44,7 @@ class TierFunction {
         }
     }
 
-    async updateTier(name, new_name) {
+    async updateTierName(name, new_name) {
         try {
             const tier = await this._client.tier.update_tier({ name, new_name });
             await this.report_success(`Update_Tier`);

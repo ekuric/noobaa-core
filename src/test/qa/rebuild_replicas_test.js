@@ -286,7 +286,7 @@ async function main() {
     await azf.authenticate();
     await set_rpc_and_create_auth_token();
     try {
-        await bf.changeTierSetting(bucket, data_frags, parity_frags, replicas);
+        await bf.changeTierSettingForBucket(bucket, data_frags, parity_frags, replicas);
         await af.clean_agents(azf, server_ip, suffix);
         const agents = await af.createRandomAgents(azf, server_ip, storage, vnet, agents_number, suffix, osesSet);
         oses = Array.from(agents.keys());

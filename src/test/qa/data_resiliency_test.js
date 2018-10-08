@@ -186,7 +186,7 @@ function stopAgentsAndCheckFiles() {
 
 async function run_main() {
     return azf.authenticate()
-        .then(() => bf.changeTierSetting(server_ip, bucket, data_frags, parity_frags, replicas))
+        .then(() => bf.changeTierSettingForBucket(server_ip, bucket, data_frags, parity_frags, replicas))
         .then(() => af.getTestNodes(server_ip, suffix))
         .then(res => {
             if ((use_existing_env) && (res)) {
