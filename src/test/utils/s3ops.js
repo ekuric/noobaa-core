@@ -45,8 +45,8 @@ class S3OPS {
             secretAccessKey: secret_key,
             s3ForcePathStyle: true,
             sslEnabled: false,
-            // when using sigv4 we need to disable body sigining to allow sending streams as body,
-            // in addition disabling body sigining requires working with https
+            // when using sigv4 we need to disable body signing to allow sending streams as body,
+            // in addition disabling body signing requires working with https
             s3DisableBodySigning: true,
             signatureVersion: sig_ver,
             httpOptions: use_https ? {
@@ -137,7 +137,7 @@ class S3OPS {
                 versionid: versionid ? versionid : undefined,
                 target_stream: pass_through,
             }),
-            // This will fail if the part size is less then 5MB, then we need to do putObject insted of upload.
+            // This will fail if the part size is less then 5MB, then we need to do putObject instead of upload.
             this._multipart_upload_internal(bucket, destination, pass_through, part_size)
         ]);
     }
@@ -642,7 +642,7 @@ class S3OPS {
                     console.warn('No uploads for bucket ', bucket);
                     throw new Error('No upload for buckets' + bucket);
                 } else {
-                    //TODO:: What happends if find does not find anything
+                    //TODO:: What happens if find does not find anything
                     dataObject = list.find(content => content.Key === object_name);
                     if (!dataObject) throw new Error('Object key wasn\'t found');
                     console.log(`Object ${dataObject.Key} UploadId is: ${dataObject.UploadId}`);
@@ -667,7 +667,7 @@ class S3OPS {
                 if (list.length === 0) {
                     console.warn('No buckets ');
                 } else {
-                    //TODO:: What happends if find does not find anything
+                    //TODO:: What happens if find does not find anything
                     dataBucket = list.find(buckets => buckets.Name === bucket);
                     console.log('Bucket data info is ', JSON.stringify(dataBucket));
                     uploadBucketId = dataBucket.Owner.ID;

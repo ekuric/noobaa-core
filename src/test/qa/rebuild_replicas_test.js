@@ -238,7 +238,7 @@ async function waitForRebuildChunks(file) {
 }
 
 async function clean_up_dataset() {
-    console.log('runing clean up files from bucket ' + bucket);
+    console.log('running clean up files from bucket ' + bucket);
     try {
         await s3ops.delete_all_objects_in_bucket(bucket, true);
     } catch (err) {

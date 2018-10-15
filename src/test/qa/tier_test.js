@@ -1,7 +1,9 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const _ = require('lodash');
 const api = require('../../api');
+const P = require('../../util/promise');
 const { S3OPS } = require('../utils/s3ops');
 const Report = require('../framework/report');
 const argv = require('minimist')(process.argv);
@@ -9,6 +11,7 @@ const argv = require('minimist')(process.argv);
 const dbg = require('../../util/debug_module')(__filename);
 const AzureFunctions = require('../../deploy/azureFunctions');
 const { TierFunction } = require('../utils/tier_functions');
+const { PoolFunctions } = require('../utils/pool_functions');
 const { BucketFunctions } = require('../utils/bucket_functions');
 dbg.set_process_name('tier');
 
@@ -78,8 +81,11 @@ const dataset_params = {
     max_depth: 10,
     min_depth: 1,
     size_units: 'MB',
-    file_size_low: 50,
-    file_size_high: 200,
+    // file_size_low: 50,
+    // file_size_high: 200,
+    file_size_low: 250, //TODO: remove
+    file_size_high: 500, //TODO: remove
+    no_exit_on_success: true,
     dataset_size: 1024 * 1,
 };
 
@@ -87,8 +93,9 @@ const rpc = api.new_rpc('wss://' + server_ip + ':8443');
 const client = rpc.new_client({});
 
 const report = new Report();
-const bf = new BucketFunctions(client, report);
-const tf = new TierFunction(client, report);
+const tier_functions = new TierFunction(client, report);
+const bucket_functions = new BucketFunctions(client, report);
+const pool_functions = new PoolFunctions(client, report, server_ip);
 
 console.log(`${YELLOW}resource: ${resource}, storage: ${storage}, vnet: ${vnet}${NC}`);
 const azf = new AzureFunctions(clientId, domain, secret, subscriptionId, resource, location);
@@ -122,7 +129,7 @@ async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_p
     const list = await getOptimalHosts(suffix);
     const min_agents_num = pools_number * agents_num_per_pool;
     if (min_agents_num > list.length) {
-        throw new Error(`The number of agents are ${list.length}, ecpected at list ${min_agents_num}`);
+        throw new Error(`The number of agents are ${list.length}, expected at list ${min_agents_num}`);
     }
     try {
         let pool_number = 0;
@@ -143,12 +150,12 @@ async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_p
     }
 }
 
-async function createTiers(pools, numebr_of_tiers = DEFAULT_NUMBER_OF_TIERS) {
+async function createTiers(pools, number_of_tiers = DEFAULT_NUMBER_OF_TIERS) {
     try {
         const tier_list = [];
-        for (let i = 0; i < numebr_of_tiers; i += 1) {
+        for (let i = 0; i < number_of_tiers; i += 1) {
             const tier_name = 'tier' + i;
-            await tf.createTier(tier_name, [pools[i]]);
+            await tier_functions.createTier(tier_name, [pools[i]]);
             tier_list.push(tier_name);
         }
         console.log(`Created ${tier_list}`);
@@ -159,20 +166,40 @@ async function createTiers(pools, numebr_of_tiers = DEFAULT_NUMBER_OF_TIERS) {
 }
 
 async function setTierPolicy(tiers, policy_name) {
-    const oreders = [];
+    const orders = [];
     for (let i = 0; i < tiers.length; i += 1) {
-        oreders.push({ order: i, tier: tiers[i] });
+        orders.push({ order: i, tier: tiers[i] });
     }
     try {
-        await tf.createTierPolicy(policy_name, oreders);
+        await tier_functions.createTierPolicy(policy_name, orders);
         console.log(`Created ${policy_name}`);
     } catch (e) {
         throw new Error(`Failed to create Tier Policy` + e);
     }
 }
 
-async function run_dataset() {
-    console.log(dataset_params);
+async function checkAllFilesInTier0(bucket, pool) {
+    try {
+        const file_list = await pool_functions.getAllBucketsFiles(bucket);
+        for (const file_name of file_list) {
+            console.log(`checking ${file_name}`);
+            await pool_functions.checkFileInPool(file_name, pool, bucket);
+        }
+    } catch (e) {
+        throw new Error(`not all files in ${pool}`);
+    }
+}
+
+async function get_pools_free_space(pool, unit, data_placement_number = 3) {
+    const size = await pool_functions.getFreeSpaceFromPool(pool, unit);
+    const size_after_data_placement = size / data_placement_number;
+    return parseInt(size_after_data_placement, 10);
+}
+
+async function run_dataset(size) {
+    //TODO: run the dataset in parallel.
+    //TODO: divide the dataset into the concurrency
+    dataset_params.dataset_size = 1024 * size;
     await dataset.init_parameters(dataset_params);
     await dataset.run_test();
 }
@@ -189,10 +216,12 @@ async function main() {
         const tiers = await createTiers(pools);
         //4. create tier policy
         await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
-        await bf.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
+        await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
         //5. write some files to the pool (via the bucket)
-        await run_dataset();
+        const size = await get_pools_free_space(pools[0], 'MB');
+        await run_dataset(size);
         //TODO: 6. check that the files are in the first tier
+        await checkAllFilesInTier0(DEFAULT_BUCKET_NAME, pools[0]);
         //TODO: 7. fill the first tier and check that the files passed to the second tier
         //         in 1st step, in 2nd step we need to test also the TTF
         //TODO: 8. Check that the files passed as LRU (oldest atime first)

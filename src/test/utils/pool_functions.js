@@ -4,7 +4,7 @@
 const P = require('../../util/promise');
 const { S3OPS } = require('../utils/s3ops');
 
-class PooltFunctions {
+class PoolFunctions {
 
     constructor(client, report, server_ip) {
         this._client = client;
@@ -26,7 +26,7 @@ class PooltFunctions {
         }
     }
 
-    async getAllbucketsfiles(bucket) {
+    async getAllBucketsFiles(bucket) {
         const list_files = await this._s3ops.get_list_files(bucket);
         const keys = list_files.map(key => key.Key);
         return keys;
@@ -46,20 +46,20 @@ class PooltFunctions {
                     adminfo: true
                 });
                 chunkAvailable = object_mappings.parts.filter(chunk => chunk.chunk.adminfo.health === 'available');
-                const chunkAvailablelength = chunkAvailable.length;
+                const chunkAvailableLength = chunkAvailable.length;
                 const partsInPool = object_mappings.parts.filter(chunk =>
                     chunk.chunk.frags[0].blocks[0].adminfo.pool_name.includes(pool)).length;
                 const chunkNum = object_mappings.parts.length;
-                if (chunkAvailablelength === chunkNum) {
-                    console.log(`Available chunks: ${chunkAvailablelength}/${chunkNum} for ${file_name}`);
+                if (chunkAvailableLength === chunkNum) {
+                    console.log(`Available chunks: ${chunkAvailableLength}/${chunkNum} for ${file_name}`);
                 } else {
-                    throw new Error(`Chanks for file ${file_name} should all be in ${
-                    pool}, Expected ${chunkNum}, recived ${chunkAvailablelength}`);
+                    throw new Error(`Chunks for file ${file_name} should all be in ${
+                    pool}, Expected ${chunkNum}, received ${chunkAvailableLength}`);
                 }
                 if (partsInPool === chunkNum) {
-                    console.log(`All The ${chunkNum} chanks are in ${pool}`);
+                    console.log(`All The ${chunkNum} chunks are in ${pool}`);
                 } else {
-                    throw new Error(`Expected ${chunkNum} parts in ${pool} for file ${file_name}, recived ${partsInPool}`);
+                    throw new Error(`Expected ${chunkNum} parts in ${pool} for file ${file_name}, received ${partsInPool}`);
                 }
                 keep_run = false;
             } catch (e) {
@@ -90,8 +90,10 @@ class PooltFunctions {
                 name: pool_name,
                 hosts: list
             });
+            await this.report_success(`create_host_pool`);
             return pool_name;
         } catch (error) {
+            await this.report_fail(`create_host_pool`);
             throw new Error('Failed create healthy pool ' + pool_name + error);
         }
     }
@@ -110,10 +112,30 @@ class PooltFunctions {
                 name: pool,
                 hosts: listAgents
             });
+            await this.report_success(`assign_hosts_to_pool`);
         } catch (error) {
+            await this.report_success(`assign_hosts_to_pool`);
             throw new Error('Failed assigning nodes to pool ' + pool + error);
+        }
+    }
+
+    async getFreeSpaceFromPool(pool, unit) {
+        try {
+            const BASE_UNIT = 1024;
+            const UNIT_MAPPING = {
+                KB: Math.pow(BASE_UNIT, 1),
+                MB: Math.pow(BASE_UNIT, 2),
+                GB: Math.pow(BASE_UNIT, 3),
+            };
+            if (!Object.keys(UNIT_MAPPING).includes(unit)) {
+                throw new Error('unit must be ' + Object.keys(UNIT_MAPPING));
+            }
+            const size_in_bytes = await this._client.pool.read_pool({ name: pool });
+            return size_in_bytes.storage.free / UNIT_MAPPING[unit];
+        } catch (error) {
+            throw new Error(error);
         }
     }
 }
 
-exports.PooltFunctions = PooltFunctions;
+exports.PoolFunctions = PoolFunctions;
