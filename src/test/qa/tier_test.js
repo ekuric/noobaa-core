@@ -178,7 +178,7 @@ async function setTierPolicy(tiers, policy_name) {
     }
 }
 
-async function checkAllFilesInTier0(bucket, pool) {
+async function checkAllFilesInTier(bucket, pool) {
     try {
         const file_list = await pool_functions.getAllBucketsFiles(bucket);
         for (const file_name of file_list) {
@@ -219,12 +219,15 @@ async function main() {
         await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
         //5. write some files to the pool (via the bucket)
         const size = await get_pools_free_space(pools[0], 'MB');
-        await run_dataset(size);
+        await run_dataset(size / 3);
         //TODO: 6. check that the files are in the first tier
-        await checkAllFilesInTier0(DEFAULT_BUCKET_NAME, pools[0]);
+        await checkAllFilesInTier(DEFAULT_BUCKET_NAME, pools[0]);
         //TODO: 7. fill the first tier and check that the files passed to the second tier
         //         in 1st step, in 2nd step we need to test also the TTF
+        await run_dataset(size / 3 * 2);
+        const files_per_tier = await tier_functions.mapAllFilesIntoTiers(DEFAULT_BUCKET_NAME);
         //TODO: 8. Check that the files passed as LRU (oldest atime first)
+        console.log(JSON.stringify(files_per_tier));
         //TODO: 9. read the files
         //TODO: 10. check that the files passed from the second tier to the fist
         //TODO: 11. when the lower tiers are full see that we can still write (until the first is full...)

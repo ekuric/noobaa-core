@@ -121,6 +121,26 @@ class TierFunction {
             throw err;
         }
     }
+
+    async mapAllFilesIntoTiers(bucket) {
+        const list_files = await this._s3ops.get_list_files(bucket);
+        const file_names = list_files.map(key => key.Key);
+        const reply = {};
+        for (const file_name of file_names) {
+            reply[file_name] = [];
+            const object_mappings = await this._client.object.read_object_mappings({
+                bucket,
+                key: file_name,
+                adminfo: true
+            });
+            object_mappings.parts.forEach(part => {
+                if (!reply[file_name].includes(part.chunk.tier)) {
+                    reply[file_name].push(part.chunk.tier);
+                }
+            });
+        }
+        return reply;
+    }
 }
 
 exports.TierFunction = TierFunction;

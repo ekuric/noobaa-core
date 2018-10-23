@@ -45,10 +45,10 @@ class PoolFunctions {
                     key: file_name,
                     adminfo: true
                 });
-                chunkAvailable = object_mappings.parts.filter(chunk => chunk.chunk.adminfo.health === 'available');
+                chunkAvailable = object_mappings.parts.filter(part => part.chunk.adminfo.health === 'available');
                 const chunkAvailableLength = chunkAvailable.length;
-                const partsInPool = object_mappings.parts.filter(chunk =>
-                    chunk.chunk.frags[0].blocks[0].adminfo.pool_name.includes(pool)).length;
+                const partsInPool = object_mappings.parts.filter(part =>
+                    part.chunk.frags[0].blocks[0].adminfo.pool_name.includes(pool)).length;
                 const chunkNum = object_mappings.parts.length;
                 if (chunkAvailableLength === chunkNum) {
                     console.log(`Available chunks: ${chunkAvailableLength}/${chunkNum} for ${file_name}`);
