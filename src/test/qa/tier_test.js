@@ -93,7 +93,7 @@ const rpc = api.new_rpc('wss://' + server_ip + ':8443');
 const client = rpc.new_client({});
 
 const report = new Report();
-const tier_functions = new TierFunction(client, report);
+const tier_functions = new TierFunction(client);
 const bucket_functions = new BucketFunctions(client, report);
 const pool_functions = new PoolFunctions(client, report, server_ip);
 
@@ -200,7 +200,7 @@ async function run_dataset(size) {
     //TODO: run the dataset in parallel.
     //TODO: divide the dataset into the concurrency
     dataset_params.dataset_size = 1024 * size;
-    await dataset.init_parameters(dataset_params);
+    await dataset.init_parameters(dataset_params); //LMLM: Will need to change after marge with master
     await dataset.run_test();
 }
 
