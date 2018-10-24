@@ -60,7 +60,7 @@ node('pipeline') {
                 pipePath="$JENKINS_URL/job/Test/job/Test-Pipeline/api/xml"
             else
                 echo "Build is: ${build}"
-                path="$JENKINS_URL/job/Build/job/Build-Package-Master/${build}"
+                path="$JENKINS_URL/job/Build/job/Build-Package/${build}"
                 pipePath="$JENKINS_URL/job/Test/job/Test-Pipeline-QA/api/xml"
             fi
             curl -u jackyalbo:711d9303458d34ad56c1a48716c02ee5e286570f -L \${path}/api/xml >/tmp/lastSuccessfulBuild.xml
