@@ -232,7 +232,7 @@ node('pipeline') {
             flags="${azureEnv} --name cluster --id \${id} "
             ${env_builder_clean} \${flags}
             """
-        // },
+        },
         // "TUI": {
         //     echo 'Running test_TUI'
         //     sh script: """
