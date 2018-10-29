@@ -106,7 +106,24 @@ async function remove_swap_on_azure(server_ip, secret) {
     }
 }
 
-//will wait until the server reconnects via rpc
+async function map_new_disk_linux(server_ip, secret) {
+    console.log(`LMLM:: map_new_disk_linux`);
+    try {
+        const client_ssh = await ssh.ssh_connect({
+            host: server_ip,
+            //  port: 22,
+            username: 'noobaaroot',
+            password: secret,
+            keepaliveInterval: 5000,
+        });
+        await ssh.ssh_exec(client_ssh, 'sudo bash -x /root/node_modules/noobaa-core/src/tools/platform/map_new_disk.sh');
+        await client_ssh.end();
+    } catch (e) {
+        throw new Error(`map_new_disk_linux failed: ${e}`);
+    }
+}
+
+//will wait untill the server reconnects via rpc
 async function wait_server_reconnect(server_ip) {
     console.log(`Connecting to the server via rpc`);
     const rpc = api.new_rpc(`wss://${server_ip}:8443`);
@@ -311,6 +328,7 @@ async function add_server_to_cluster(master_ip, slave_ip, slave_secret, slave_na
 exports.enable_nooba_login = enable_nooba_login;
 exports.set_first_install_mark = set_first_install_mark;
 exports.clean_ova = clean_ova;
+exports.map_new_disk_linux = map_new_disk_linux;
 exports.wait_server_reconnect = wait_server_reconnect;
 exports.validate_activation_code = validate_activation_code;
 exports.create_system_and_check = create_system_and_check;

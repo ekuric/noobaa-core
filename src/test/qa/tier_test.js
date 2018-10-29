@@ -8,12 +8,14 @@ const { S3OPS } = require('../utils/s3ops');
 const Report = require('../framework/report');
 const argv = require('minimist')(process.argv);
 
+const server_ops = require('../utils/server_functions');
 const dbg = require('../../util/debug_module')(__filename);
 const AzureFunctions = require('../../deploy/azureFunctions');
+const agent_functions = require('../utils/agent_functions');
 const { TierFunction } = require('../utils/tier_functions');
 const { PoolFunctions } = require('../utils/pool_functions');
 const { BucketFunctions } = require('../utils/bucket_functions');
-dbg.set_process_name('tier');
+dbg.set_process_name('tier_test');
 
 //define colors
 const NC = "\x1b[0m";
@@ -34,15 +36,15 @@ const DEFAULT_BUCKET_NAME = 'tier.bucket';
 const DEFAULT_TIER_POLICY_NAME = 'first_policy';
 
 const {
+    resource,
+    storage,
+    vnet,
+    agents_number = 6,
+    failed_agents_number = 1,
+    server_ip,
+    id = 0,
     location = 'westus2',
-        resource,
-        storage,
-        vnet,
-        agents_number = 6,
-        failed_agents_number = 1,
-        server_ip,
-        id = 0,
-        help = false,
+    help = false,
 } = argv;
 
 const s3ops = new S3OPS({ ip: server_ip });
@@ -118,6 +120,7 @@ async function getOptimalHosts(include_suffix) {
                 list.push(host.name);
             }
         }
+        console.warn();
     } catch (e) {
         throw new Error(`Failed to getOptimalHosts` + e);
     }
@@ -129,6 +132,7 @@ async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_p
     const list = await getOptimalHosts(suffix);
     const min_agents_num = pools_number * agents_num_per_pool;
     if (min_agents_num > list.length) {
+        console.warn(`Optimal host list is: ${list}`);
         throw new Error(`The number of agents are ${list.length}, expected at list ${min_agents_num}`);
     }
     try {
@@ -190,6 +194,56 @@ async function checkAllFilesInTier(bucket, pool) {
     }
 }
 
+async function createAgents(ip, number_of_agents = 6) {
+    const osname = 'centos6';
+    const agents = [];
+    const created_agents = [];
+    if (number_of_agents % 2 !== 0) {
+        throw new Error(`createAgents:: we got number_of_agents = ${number_of_agents}, number_of_agents must be even`);
+    }
+    for (let i = 0; i < agents_number; ++i) {
+        agents.push(suffixName + osname + id + i);
+    }
+    await P.map(agents, async agent => {
+        const useDisk = (Number(agent.replace(suffixName + osname + id, '')) % 2 !== 0);
+        let retry = true;
+        while (retry) {
+            try {
+                await azf.createAgent({
+                    vmName: agent,
+                    storage,
+                    vnet,
+                    os: osname,
+                    agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : ['']),
+                    server_ip
+                });
+                created_agents.push(agent);
+                retry = false;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        if (useDisk) {
+            console.log(`adding data disk to vm ${agent} of size 16 GB`);
+            try {
+                await azf.addDataDiskToVM({
+                    vm: agent,
+                    size: 16,
+                    storage,
+                });
+                const system_info = await client.system.read_system({});
+                const server_secret = system_info.cluster.master_secret;
+                console.warn(server_secret);
+                await server_ops.map_new_disk_linux(ip, server_secret);
+            } catch (e) {
+                console.error(e);
+                throw new Error(`failed to add disks`);
+            }
+        }
+    });
+    return created_agents;
+}
+
 async function get_pools_free_space(pool, unit, data_placement_number = 3) {
     const size = await pool_functions.getFreeSpaceFromPool(pool, unit);
     const size_after_data_placement = size / data_placement_number;
@@ -206,27 +260,29 @@ async function run_dataset(size) {
 
 async function main() {
     try {
+        await azf.authenticate();
         await set_rpc_and_create_auth_token();
         //TODO: 1. have 6 agents 1st step get that from the outside. 2nd step create. (3 smaller and 3 larger capacity)
-        //2. create 2 pools and assign 3 agent for each. 
+        await createAgents(server_ip, agents_number);
+        console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
         //TODO: 2nd step do all the below with jest 1 pool
         const pools = await createPools();
-        //3. create 2 tiers [0, 1] 
-        //TODO: (1st step, in 2nd do more, that include more agents in step number one)
+        console.log(`${YELLOW}creating 2 tiers${NC}`);
+        //TODO: in 2nd do more, that include more agents in step number one
         const tiers = await createTiers(pools);
-        //4. create tier policy
+        console.log(`${YELLOW}creating tier policy${NC}`);
         await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
         await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
-        //5. write some files to the pool (via the bucket)
+        console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
         const size = await get_pools_free_space(pools[0], 'MB');
         await run_dataset(size / 3);
-        //TODO: 6. check that the files are in the first tier
+        console.log(`${YELLOW}checking that the files are in the first tier only${NC}`);
         await checkAllFilesInTier(DEFAULT_BUCKET_NAME, pools[0]);
-        //TODO: 7. fill the first tier and check that the files passed to the second tier
-        //         in 1st step, in 2nd step we need to test also the TTF
+        console.log(`${YELLOW}filling the first tier${NC}`);
         await run_dataset(size / 3 * 2);
         const files_per_tier = await tier_functions.mapAllFilesIntoTiers(DEFAULT_BUCKET_NAME);
         //TODO: 8. Check that the files passed as LRU (oldest atime first)
+        //TODO: in 2nd step we need to test also the TTF
         console.log(JSON.stringify(files_per_tier));
         //TODO: 9. read the files
         //TODO: 10. check that the files passed from the second tier to the fist
