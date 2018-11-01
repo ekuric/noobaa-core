@@ -129,11 +129,23 @@ async function getOptimalHosts(include_suffix) {
 
 async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_pool = DEFAULT_AGENTS_NUMBER_PER_POOL) {
     const pool_list = [];
-    const list = await getOptimalHosts(suffix);
-    const min_agents_num = pools_number * agents_num_per_pool;
-    if (min_agents_num > list.length) {
-        console.warn(`Optimal host list is: ${list}`);
-        throw new Error(`The number of agents are ${list.length}, expected at list ${min_agents_num}`);
+    let list = await getOptimalHosts(suffix);
+    let min_agents_num = pools_number * agents_num_per_pool;
+    let retry = true;
+    let retry_count = 1;
+    const MAX_RETRIES = 5;
+    while (retry) {
+        if (min_agents_num > list.length) {
+            if (retry_count <= MAX_RETRIES) {
+                list = await getOptimalHosts(suffix);
+                min_agents_num = pools_number * agents_num_per_pool;
+            } else {
+                console.warn(`Optimal host list is: ${list}`);
+                throw new Error(`The number of agents are ${list.length}, expected at list ${min_agents_num}`);
+            }
+        } else {
+            retry = false;
+        }
     }
     try {
         let pool_number = 0;
@@ -194,7 +206,7 @@ async function checkAllFilesInTier(bucket, pool) {
     }
 }
 
-async function createAgents(ip, number_of_agents = 6) {
+async function createAgents(number_of_agents = 6) {
     const osname = 'centos6';
     const agents = [];
     const created_agents = [];
@@ -207,15 +219,17 @@ async function createAgents(ip, number_of_agents = 6) {
     await P.map(agents, async agent => {
         const useDisk = (Number(agent.replace(suffixName + osname + id, '')) % 2 !== 0);
         let retry = true;
+        let agent_ip;
         while (retry) {
             try {
-                await azf.createAgent({
+                agent_ip = await azf.createAgent({
                     vmName: agent,
                     storage,
                     vnet,
                     os: osname,
                     agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : ['']),
-                    server_ip
+                    server_ip,
+                    allocate_pip: true //LMLM: remove!
                 });
                 created_agents.push(agent);
                 retry = false;
@@ -231,10 +245,7 @@ async function createAgents(ip, number_of_agents = 6) {
                     size: 16,
                     storage,
                 });
-                const system_info = await client.system.read_system({});
-                const server_secret = system_info.cluster.master_secret;
-                console.warn(server_secret);
-                await server_ops.map_new_disk_linux(ip, server_secret);
+                await server_ops.map_new_disk_linux(agent_ip);
             } catch (e) {
                 console.error(e);
                 throw new Error(`failed to add disks`);
@@ -263,7 +274,7 @@ async function main() {
         await azf.authenticate();
         await set_rpc_and_create_auth_token();
         //TODO: 1. have 6 agents 1st step get that from the outside. 2nd step create. (3 smaller and 3 larger capacity)
-        await createAgents(server_ip, agents_number);
+        await createAgents(agents_number);
         console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
         //TODO: 2nd step do all the below with jest 1 pool
         const pools = await createPools();

@@ -110,20 +110,21 @@ async function map_new_disk_linux(server_ip, secret) {
     console.log(`LMLM:: map_new_disk_linux`);
     try {
         const client_ssh = await ssh.ssh_connect({
-            host: server_ip,
+            host: agent_ip,
             //  port: 22,
-            username: 'noobaaroot',
-            password: secret,
+            username: 'notadmin',
+            password: '0bj3ctSt0r3!',
             keepaliveInterval: 5000,
         });
-        await ssh.ssh_exec(client_ssh, 'sudo bash -x /root/node_modules/noobaa-core/src/tools/platform/map_new_disk.sh');
+        await ssh.ssh_exec(client_ssh, 'sudo /usr/local/noobaa/src/tools/platform/map_new_disk.sh &> /dev/null');
         await client_ssh.end();
     } catch (e) {
+        console.warn(`agent_ip: ${agent_ip}`);
         throw new Error(`map_new_disk_linux failed: ${e}`);
     }
 }
 
-//will wait untill the server reconnects via rpc
+//will wait until the server reconnects via rpc
 async function wait_server_reconnect(server_ip) {
     console.log(`Connecting to the server via rpc`);
     const rpc = api.new_rpc(`wss://${server_ip}:8443`);
