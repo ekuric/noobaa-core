@@ -273,13 +273,12 @@ async function main() {
     try {
         await azf.authenticate();
         await set_rpc_and_create_auth_token();
-        //TODO: 1. have 6 agents 1st step get that from the outside. 2nd step create. (3 smaller and 3 larger capacity)
         await createAgents(agents_number);
         console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
-        //TODO: 2nd step do all the below with jest 1 pool
+        //TODO: 2nd step do all the below with just 1 pool
         const pools = await createPools();
         console.log(`${YELLOW}creating 2 tiers${NC}`);
-        //TODO: in 2nd do more, that include more agents in step number one
+        //TODO: in 2nd stage do more, that include more agents in step number one
         const tiers = await createTiers(pools);
         console.log(`${YELLOW}creating tier policy${NC}`);
         await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
