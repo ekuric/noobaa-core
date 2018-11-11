@@ -1,10 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
-// const _ = require('lodash');
 const api = require('../../api');
 const P = require('../../util/promise');
-const { S3OPS } = require('../utils/s3ops');
 const Report = require('../framework/report');
 const argv = require('minimist')(process.argv);
 
@@ -46,8 +44,6 @@ const {
     location = 'westus2',
     help = false,
 } = argv;
-
-// const s3ops = new S3OPS({ ip: server_ip });
 
 function usage() {
     console.log(`
