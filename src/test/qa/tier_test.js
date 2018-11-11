@@ -1,7 +1,7 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
-const _ = require('lodash');
+// const _ = require('lodash');
 const api = require('../../api');
 const P = require('../../util/promise');
 const { S3OPS } = require('../utils/s3ops');
@@ -47,7 +47,7 @@ const {
     help = false,
 } = argv;
 
-const s3ops = new S3OPS({ ip: server_ip });
+// const s3ops = new S3OPS({ ip: server_ip });
 
 function usage() {
     console.log(`
