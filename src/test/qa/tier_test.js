@@ -120,15 +120,13 @@ async function getOptimalHosts(include_suffix) {
                 list.push(host.name);
             }
         }
-        console.warn();
     } catch (e) {
         throw new Error(`Failed to getOptimalHosts` + e);
     }
     return list;
 }
 
-async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_pool = DEFAULT_AGENTS_NUMBER_PER_POOL) {
-    const pool_list = [];
+async function waitForOptimalHosts(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_pool = DEFAULT_AGENTS_NUMBER_PER_POOL) {
     let list = await getOptimalHosts(suffix);
     let min_agents_num = pools_number * agents_num_per_pool;
     let retry = true;
@@ -137,28 +135,44 @@ async function createPools(pools_number = DEFAULT_POOLS_NUMBER, agents_num_per_p
     while (retry) {
         if (min_agents_num > list.length) {
             if (retry_count <= MAX_RETRIES) {
+                console.warn(`number of optimal host is ${list.length}, retrying`);
+                console.warn(`list: ${list}`);
                 list = await getOptimalHosts(suffix);
                 min_agents_num = pools_number * agents_num_per_pool;
             } else {
                 console.warn(`Optimal host list is: ${list}`);
                 throw new Error(`The number of agents are ${list.length}, expected at list ${min_agents_num}`);
             }
+            await P.delay(30 * 1000);
         } else {
+            console.log(`number of optimal host is ${list.length}, as expected`);
             retry = false;
         }
     }
+    return list;
+}
+
+async function createPools(pools_number = DEFAULT_POOLS_NUMBER) { //, agents_num_per_pool = DEFAULT_AGENTS_NUMBER_PER_POOL) {
+    // const osname = 'centos6';
+    const pool_list = [];
+    // const list = await waitForOptimalHosts(pools_number, agents_num_per_pool);
     try {
-        let pool_number = 0;
-        for (let i = 0; i < min_agents_num; i += agents_num_per_pool) {
+        for (let pool_number = 0; pool_number < pools_number; ++pool_number) {
+            // const agents_from_list = [];
             const pool_name = 'pool_tier' + pool_number;
-            const agents_from_list = list.slice(i, i + agents_num_per_pool);
-            console.log(`Creating ${pool_name} with online agents: ${agents_from_list}`);
+            // const remainder = pool_number;
+            // for (let i = 0; i < list.length; ++i) {
+            //     if (Number(list[i].replace(suffixName + osname + id, '')
+            //             .replace(new RegExp("#.*", 'g'), '')) % pools_number === remainder) {
+            //         agents_from_list.push(list[i]);
+            //     }
+            // }
+            console.log(`${YELLOW}Creating ${pool_name}${NC}`); // with online agents: ${agents_from_list}`);
             await client.pool.create_hosts_pool({
                 name: pool_name,
-                hosts: agents_from_list
+                // hosts: agents_from_list
             });
             pool_list.push(pool_name);
-            pool_number += 1;
         }
         return pool_list;
     } catch (error) {
@@ -206,7 +220,22 @@ async function checkAllFilesInTier(bucket, pool) {
     }
 }
 
-async function createAgents(number_of_agents = 6) {
+async function addDisk(agent, ip) {
+    console.log(`adding data disk to vm ${agent} of size 16 GB`);
+    try {
+        await azf.addDataDiskToVM({
+            vm: agent,
+            size: 16,
+            storage,
+        });
+        await server_ops.map_new_disk_linux(ip);
+    } catch (e) {
+        console.error(e);
+        throw new Error(`failed to add disks`);
+    }
+}
+
+async function createAgents(number_of_agents = 6, pools) {
     const osname = 'centos6';
     const agents = [];
     const created_agents = [];
@@ -217,7 +246,7 @@ async function createAgents(number_of_agents = 6) {
         agents.push(suffixName + osname + id + i);
     }
     await P.map(agents, async agent => {
-        const useDisk = (Number(agent.replace(suffixName + osname + id, '')) % 2 !== 0);
+        const useDisk = (Number(agent.replace(suffixName + osname + id, '')) % 2 === 0);
         let retry = true;
         let agent_ip;
         while (retry) {
@@ -227,29 +256,27 @@ async function createAgents(number_of_agents = 6) {
                     storage,
                     vnet,
                     os: osname,
-                    agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : ['']),
+                    agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : [''], useDisk ? pools[0] : pools[1]), //currently will work only for 2 pools
                     server_ip,
                     allocate_pip: true //LMLM: remove!
                 });
                 created_agents.push(agent);
                 retry = false;
             } catch (e) {
+                await P.delay(30 * 1000);
                 console.error(e);
             }
         }
         if (useDisk) {
-            console.log(`adding data disk to vm ${agent} of size 16 GB`);
-            try {
-                await azf.addDataDiskToVM({
-                    vm: agent,
-                    size: 16,
-                    storage,
-                });
-                await server_ops.map_new_disk_linux(agent_ip);
-            } catch (e) {
-                console.error(e);
-                throw new Error(`failed to add disks`);
-            }
+            await addDisk(agent, agent_ip);
+            const params = {
+                ip: agent_ip,
+                username: 'notadmin',
+                secret: '0bj3ctSt0r3!',
+                sizeMB: 4 * 1024 //we are adding 16 GB disk which will leave us with ~5GB free we will fill 4GB
+            };
+            console.log(`writing into ${agent} disk`);
+            await agent_functions.manipulateLocalDisk(params);
         }
     });
     return created_agents;
@@ -273,10 +300,11 @@ async function main() {
     try {
         await azf.authenticate();
         await set_rpc_and_create_auth_token();
-        await createAgents(agents_number);
-        console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
         //TODO: 2nd step do all the below with just 1 pool
+        console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
         const pools = await createPools();
+        await createAgents(agents_number, pools);
+        await waitForOptimalHosts();
         console.log(`${YELLOW}creating 2 tiers${NC}`);
         //TODO: in 2nd stage do more, that include more agents in step number one
         const tiers = await createTiers(pools);
@@ -294,14 +322,15 @@ async function main() {
         //TODO: 8. Check that the files passed as LRU (oldest atime first)
         //TODO: in 2nd step we need to test also the TTF
         console.log(JSON.stringify(files_per_tier));
-        //TODO: 9. read the files
-        //TODO: 10. check that the files passed from the second tier to the fist
-        //TODO: 11. when the lower tiers are full see that we can still write (until the first is full...)
-        //TODO: 12. try to read when all the agents in all the tiers are full
-        //TODO: 13. delete some file from each tier
-        //TODO: 14. update the tiers policy, and see that the files are rearranging.
-        //TODO: 15. delete the policy, what should happens
-        //TODO: 16. delete the tiers, what should happens
+        //TODO: 9. add space to the disks (free the manipulated space) and see that we can write again to tier0
+        //TODO: 10. read the files
+        //TODO: 11. check that the files passed from the second tier to the fist
+        //TODO: 12. when the lower tiers are full see that we can still write (until the first is full...)
+        //TODO: 13. try to read when all the agents in all the tiers are full
+        //TODO: 14. delete some file from each tier
+        //TODO: 15. update the tiers policy, and see that the files are rearranging.
+        //TODO: 16. delete the policy, what should happens
+        //TODO: 17. delete the tiers, what should happens
         process.exit(0);
     } catch (e) {
         console.error(e);

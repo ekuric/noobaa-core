@@ -516,7 +516,7 @@ async function createRandomAgents(azf, server_ip, storage, resource_vnet, amount
 async function manipulateLocalDisk(params) {
     const ssh_client = await ssh_functions.ssh_connect({
         host: params.ip,
-        username: 'noobaaroot',
+        username: params.username || 'noobaaroot',
         password: params.secret,
         keepaliveInterval: 5000,
     });
