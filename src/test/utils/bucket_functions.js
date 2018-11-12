@@ -18,7 +18,17 @@ class BucketFunctions {
 
     async createBucket(name) {
         try {
-            let buck = await this._client.bucket.create_bucket({ name });
+            const buck = await this._client.bucket.create_bucket({ name });
+            return buck;
+        } catch (err) {
+            console.log('Create bucket ERR', err);
+            throw err;
+        }
+    }
+
+    async createBucketWithPolicy(name, tiering) {
+        try {
+            const buck = await this._client.bucket.create_bucket({ name, tiering });
             return buck;
         } catch (err) {
             console.log('Create bucket ERR', err);

@@ -13,7 +13,9 @@ const agent_functions = require('../utils/agent_functions');
 const { TierFunction } = require('../utils/tier_functions');
 const { PoolFunctions } = require('../utils/pool_functions');
 const { BucketFunctions } = require('../utils/bucket_functions');
-dbg.set_process_name('tier_test');
+
+const suite_name = 'tier_test';
+dbg.set_process_name(suite_name);
 
 //define colors
 const NC = "\x1b[0m";
@@ -85,6 +87,11 @@ const dataset_params = {
     file_size_high: 500, //TODO: remove
     no_exit_on_success: true,
     dataset_size: 1024 * 1,
+    suite_name: suite_name,
+};
+
+const report_params = {
+    suite_name: 'cloud_test'
 };
 
 const rpc = api.new_rpc('wss://' + server_ip + ':8443');
@@ -288,7 +295,8 @@ async function run_dataset(size) {
     //TODO: run the dataset in parallel.
     //TODO: divide the dataset into the concurrency
     dataset_params.dataset_size = 1024 * size;
-    await dataset.init_parameters(dataset_params); //LMLM: Will need to change after marge with master
+    console.log(JSON.stringify(dataset_params));
+    await dataset.init_parameters({ dataset_params, report_params }); //LMLM: Will need to change after marge with master
     await dataset.run_test();
 }
 
@@ -309,6 +317,8 @@ async function main() {
         await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
         console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
         const size = await get_pools_free_space(pools[0], 'MB');
+        console.error(size);
+        process.exit(1);
         await run_dataset(size / 3);
         console.log(`${YELLOW}checking that the files are in the first tier only${NC}`);
         await checkAllFilesInTier(DEFAULT_BUCKET_NAME, pools[0]);
