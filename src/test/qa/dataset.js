@@ -15,6 +15,7 @@ const dbg = require('../../util/debug_module')(__filename);
 require('seedrandom');
 
 const test_name = 'dataset';
+const old_dbg_process_name = dbg.get_process_name();
 dbg.set_process_name(test_name);
 
 module.exports = {
@@ -712,7 +713,10 @@ async function upload_new_files() {
     console.timeEnd('dataset upload');
 }
 
-function run_test(throw_on_fail) {
+async function run_test(throw_on_fail) {
+    if (old_dbg_process_name !== test_name) {
+        dbg.set_process_name(test_name);
+    }
     return P.resolve()
         .then(() => log_journal_file(`${CFG_MARKER}${DATASET_NAME}-${JSON.stringify(TEST_CFG)}`))
         .then(() => upload_new_files()
@@ -749,6 +753,7 @@ function run_test(throw_on_fail) {
             })
             .then(() => {
                 console.log(`Everything finished with success!`);
+                dbg.set_process_name(old_dbg_process_name);
                 if (!TEST_CFG.no_exit_on_success) process.exit(0);
             })
             .catch(async err => {

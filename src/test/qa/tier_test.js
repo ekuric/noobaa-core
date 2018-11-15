@@ -15,7 +15,6 @@ const { PoolFunctions } = require('../utils/pool_functions');
 const { BucketFunctions } = require('../utils/bucket_functions');
 
 const suite_name = 'tier_test';
-dbg.set_process_name(suite_name);
 
 //define colors
 const NC = "\x1b[0m";
@@ -44,6 +43,7 @@ const {
     server_ip,
     id = 0,
     location = 'westus2',
+    allocate_pip = false,
     help = false,
 } = argv;
 
@@ -57,6 +57,7 @@ function usage() {
     --failed_agents_number  -   number of agents to fail (default: ${failed_agents_number})
     --server_ip             -   noobaa server ip.
     --id                    -   an id that is attached to the agents name
+    --allocate_pip          -   will allocate public ip for the agents
     --help                  -   show this help.
     `);
 }
@@ -71,6 +72,7 @@ if (help) {
 
 // we require this here so --help will not call datasets help.
 const dataset = require('./dataset.js');
+dbg.set_process_name(suite_name);
 
 const dataset_params = {
     server_ip,
@@ -261,7 +263,7 @@ async function createAgents(number_of_agents = 6, pools) {
                     os: osname,
                     agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : [''], useDisk ? pools[0] : pools[1]), //currently will work only for 2 pools
                     server_ip,
-                    allocate_pip: true //LMLM: remove!
+                    allocate_pip //LMLM: remove!
                 });
                 created_agents.push(agent);
                 retry = false;
@@ -272,29 +274,49 @@ async function createAgents(number_of_agents = 6, pools) {
         }
         if (useDisk) {
             await addDisk(agent, agent_ip);
-            const params = {
-                ip: agent_ip,
-                username: 'notadmin',
-                secret: '0bj3ctSt0r3!',
-                sizeMB: 4 * 1024 //we are adding 16 GB disk which will leave us with ~5GB free we will fill 4GB
-            };
-            console.log(`writing into ${agent} disk`);
-            await agent_functions.manipulateLocalDisk(params);
+            //TODO: enable this when we have a function that gets the path of the disk.
+            // 
+            //const disk_path =
+            // console.log(`writing into ${agent} disk`);
+            // const params = {
+            //     ip: agent_ip,
+            //     username: 'notadmin',
+            //     secret: '0bj3ctSt0r3!',
+            //     path: disk_path,
+            //     sizeMB: 3 * 1024 //we are adding 16 GB disk which will leave us with ~5GB free we will fill 4GB
+            // };
+            // await agent_functions.manipulateLocalDisk(params);
         }
     });
     return created_agents;
 }
 
 async function get_pools_free_space(pool, unit, data_placement_number = 3) {
-    const size = await pool_functions.getFreeSpaceFromPool(pool, unit);
+    let size = 0;
+    let retry = 0;
+    while (size === 0) {
+        if (retry < 5) {
+            try {
+                size = await pool_functions.getFreeSpaceFromPool(pool, unit);
+            } catch (e) {
+                throw new Error(`getFreeSpaceFromPool:: failed with ${e}`);
+            }
+            console.warn(`LMLM: ${size}`); //TODO: remove
+            await P.delay(30 * 1000);
+        } else {
+            throw new Error(`Free space on the pool cant be ${size}`);
+        }
+        retry += 1;
+    }
     const size_after_data_placement = size / data_placement_number;
+    console.warn(`LMLM: data_placement_number ${data_placement_number}, size_after_data_placement ${size_after_data_placement}`); //TODO: remove
     return parseInt(size_after_data_placement, 10);
 }
 
 async function run_dataset(size) {
     //TODO: run the dataset in parallel.
     //TODO: divide the dataset into the concurrency
-    dataset_params.dataset_size = 1024 * size;
+    dataset_params.dataset_size = size;
     console.log(JSON.stringify(dataset_params));
     await dataset.init_parameters({ dataset_params, report_params }); //LMLM: Will need to change after marge with master
     await dataset.run_test();
@@ -306,19 +328,19 @@ async function main() {
         await set_rpc_and_create_auth_token();
         //TODO: 2nd step do all the below with just 1 pool
         console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
-        const pools = await createPools();
-        await createAgents(agents_number, pools);
-        await waitForOptimalHosts();
+        // const pools = await createPools();
+        // await createAgents(agents_number, pools);
+        // await waitForOptimalHosts();
         console.log(`${YELLOW}creating 2 tiers${NC}`);
         //TODO: in 2nd stage do more, that include more agents in step number one
-        const tiers = await createTiers(pools);
+        // const tiers = await createTiers(pools);
         console.log(`${YELLOW}creating tier policy${NC}`);
-        await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
-        await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
+        // await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
+        // await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
         console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
+        const pools = ['pool_tier0', 'pool_tier1'];
         const size = await get_pools_free_space(pools[0], 'MB');
-        console.error(size);
-        process.exit(1);
+        console.error(size); //LMLM remove!!!!
         await run_dataset(size / 3);
         console.log(`${YELLOW}checking that the files are in the first tier only${NC}`);
         await checkAllFilesInTier(DEFAULT_BUCKET_NAME, pools[0]);
