@@ -288,8 +288,8 @@ class S3OPS {
         }
     }
 
-    get_list_files(bucket, prefix, param = { supress_logs: false, maxKeys: 1000, version: false }) {
-        const supress_logs = param.supress_logs;
+    get_list_files(bucket, prefix, param = { suppress_logs: false, maxKeys: 1000, version: false }) {
+        const suppress_logs = param.suppress_logs;
         const MaxKeys = param.maxKeys;
         let ops = 'listObjects';
         let params = {
@@ -311,13 +311,13 @@ class S3OPS {
                     list = res.Contents;
                 }
                 if (list.length === 0) {
-                    if (!supress_logs) {
+                    if (!suppress_logs) {
                         console.warn('No files with prefix in bucket');
                     }
                 } else {
                     list.forEach(file => {
                         listFiles.push(_.omitBy(_.pick(file, ['Key', 'VersionId']), !_.isUndefined));
-                        if (!supress_logs) {
+                        if (!suppress_logs) {
                             console.log('files key is: ' + file.Key);
                         }
                     });
@@ -470,7 +470,7 @@ class S3OPS {
         console.log(`cleaning all files from ${bucket} in ${this.ip}`);
         promise_utils.pwhile(
             () => run_list,
-            () => this.get_list_files(bucket, '', { maxKeys: 1000, version: is_versioning, supress_logs: true })
+            () => this.get_list_files(bucket, '', { maxKeys: 1000, version: is_versioning, suppress_logs: true })
             .then(list => {
                 console.log(`Partial list_files.length is ${list.length}`);
                 if (list.length < 1000) {

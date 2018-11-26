@@ -3,9 +3,9 @@
 
 const api = require('../../api');
 const P = require('../../util/promise');
+const { S3OPS } = require('../utils/s3ops');
 const Report = require('../framework/report');
 const argv = require('minimist')(process.argv);
-
 const server_ops = require('../utils/server_functions');
 const dbg = require('../../util/debug_module')(__filename);
 const AzureFunctions = require('../../deploy/azureFunctions');
@@ -15,6 +15,7 @@ const { PoolFunctions } = require('../utils/pool_functions');
 const { BucketFunctions } = require('../utils/bucket_functions');
 
 const suite_name = 'tier_test';
+dbg.set_process_name(suite_name);
 
 //define colors
 const NC = "\x1b[0m";
@@ -32,6 +33,7 @@ const DEFAULT_POOLS_NUMBER = 2;
 const DEFAULT_NUMBER_OF_TIERS = 2;
 const DEFAULT_AGENTS_NUMBER_PER_POOL = 3;
 const DEFAULT_BUCKET_NAME = 'tier.bucket';
+const DEFAULT_TEST_FILE = 'tier_test_file';
 const DEFAULT_TIER_POLICY_NAME = 'first_policy';
 
 const {
@@ -72,7 +74,6 @@ if (help) {
 
 // we require this here so --help will not call datasets help.
 const dataset = require('./dataset.js');
-dbg.set_process_name(suite_name);
 
 const dataset_params = {
     server_ip,
@@ -100,7 +101,8 @@ const rpc = api.new_rpc('wss://' + server_ip + ':8443');
 const client = rpc.new_client({});
 
 const report = new Report();
-const tier_functions = new TierFunction(client);
+const s3ops = new S3OPS({ ip: server_ip });
+const tier_functions = new TierFunction(client, server_ip);
 const bucket_functions = new BucketFunctions(client, report);
 const pool_functions = new PoolFunctions(client, report, server_ip);
 
@@ -225,6 +227,22 @@ async function checkAllFilesInTier(bucket, pool) {
     }
 }
 
+async function readAllFilesInBucket(bucket) {
+    try {
+        const file_list = await pool_functions.getAllBucketsFiles(bucket);
+        for (const file_name of file_list) {
+            console.log(`checking ${file_name}`);
+            try {
+                await s3ops.get_file_check_md5(bucket, file_name);
+            } catch (e) {
+                throw new Error(`failed to read ${file_name}`, e);
+            }
+        }
+    } catch (e) {
+        throw e;
+    }
+}
+
 async function addDisk(agent, ip) {
     console.log(`adding data disk to vm ${agent} of size 16 GB`);
     try {
@@ -263,7 +281,7 @@ async function createAgents(number_of_agents = 6, pools) {
                     os: osname,
                     agentConf: await agent_functions.getAgentConf(server_ip, useDisk ? ['/'] : [''], useDisk ? pools[0] : pools[1]), //currently will work only for 2 pools
                     server_ip,
-                    allocate_pip //LMLM: remove!
+                    allocate_pip
                 });
                 created_agents.push(agent);
                 retry = false;
@@ -301,7 +319,6 @@ async function get_pools_free_space(pool, unit, data_placement_number = 3) {
             } catch (e) {
                 throw new Error(`getFreeSpaceFromPool:: failed with ${e}`);
             }
-            console.warn(`LMLM: ${size}`); //TODO: remove
             await P.delay(30 * 1000);
         } else {
             throw new Error(`Free space on the pool cant be ${size}`);
@@ -309,16 +326,142 @@ async function get_pools_free_space(pool, unit, data_placement_number = 3) {
         retry += 1;
     }
     const size_after_data_placement = size / data_placement_number;
-    console.warn(`LMLM: data_placement_number ${data_placement_number}, size_after_data_placement ${size_after_data_placement}`); //TODO: remove
+    console.log(`data_placement_number ${data_placement_number}, size_after_data_placement ${size_after_data_placement}`);
     return parseInt(size_after_data_placement, 10);
 }
 
-async function run_dataset(size) {
+async function write_test_file(bucket, test_file) {
+    try {
+        const BASE_UNIT = 1024;
+        await s3ops.put_file_with_md5(bucket, test_file, 1, Math.pow(BASE_UNIT, 2));
+    } catch (e) {
+        throw new Error(`failed to write test file.`);
+    }
+}
+
+async function set_test_env() {
+    //TODO: 2nd step do all the below with just 1 pool
+    console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
+    const pools = await createPools();
+    await createAgents(agents_number, pools);
+    await waitForOptimalHosts();
+    console.log(`${YELLOW}creating 2 tiers${NC}`);
+    //TODO: in 2nd stage do more, that include more agents in step number one
+    const tiers = await createTiers(pools);
+    console.log(`${YELLOW}creating tier policy${NC}`);
+    await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
+    await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
+    console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
+    await write_test_file(DEFAULT_BUCKET_NAME, DEFAULT_TEST_FILE);
+    return pools;
+}
+
+async function test_writes_into_first_tier(pools) {
+    const bucket = DEFAULT_BUCKET_NAME;
+    const size = await get_pools_free_space(pools[0], 'MB');
+    await run_dataset(size / 3);
+    console.log(`${YELLOW}checking that the files are in the first tier only${NC}`);
+    await checkAllFilesInTier(bucket, pools[0]);
+    await pool_functions.checkFileInPool(DEFAULT_TEST_FILE, pools[0], bucket);
+}
+
+async function test_file_migration(pools) {
+    const bucket = DEFAULT_BUCKET_NAME;
+    const test_file = DEFAULT_TEST_FILE;
+    console.log(`${YELLOW}filling the first tier${NC}`);
+    let size = await get_pools_free_space(pools[0], 'MB');
+    await run_dataset(size);
+    console.log(`verify that the bucket ${bucket} is full`);
+    size = await get_pools_free_space(pools[0], 'KB');
+    if (size !== 0) {
+        console.warn(`expected size was 0, got ${size}, trying to fill it.`);
+        await run_dataset(size, 'KB');
+    }
+    const files_per_tier = await tier_functions.mapAllFilesIntoTiers(bucket);
+    console.log(JSON.stringify(files_per_tier));
+    await pool_functions.checkFileInPool(test_file, pools[1], bucket);
+    //TODO: 8. Check that the files passed as LRU (oldest atime first)
+    //TODO: in 2nd step we need to test also the TTF
+    console.log(`${YELLOW}reading ${test_file}${NC}`);
+    await s3ops.get_object(bucket, test_file);
+    console.log(`${YELLOW}checking that the file: ${test_file} passed from the second tier to the first${NC}`);
+    await pool_functions.checkFileInPool(test_file, pools[0], bucket);
+    console.log(`read all the files`);
+    await readAllFilesInBucket(bucket);
+}
+
+async function clean_bucket(bucket) {
+    let run_list = true;
+    console.log(`cleaning all files from ${bucket}`);
+    while (run_list) {
+        const list_files = await s3ops.get_list_files(bucket, '', { maxKeys: 1000 });
+        if (list_files.length < 1000) {
+            run_list = false;
+        }
+        const index = list_files.indexOf(DEFAULT_TEST_FILE);
+        if (index !== -1) {
+            list_files.splice(index, 1);
+        }
+        for (const file of list_files) {
+            await s3ops.delete_file(bucket, file.Key);
+        }
+    }
+}
+
+async function fill_all_space_and_delete(pools) {
+    const size = (await get_pools_free_space(pools[0], 'MB') + await get_pools_free_space(pools[1], 'MB'));
+    console.log(`${YELLOW}filling all the free space in the system ( ${size} MB )${NC}`);
+    await run_dataset(size);
+    console.log(`delete all the files except for ${DEFAULT_TEST_FILE}.`);
+    await clean_bucket(s3ops, DEFAULT_BUCKET_NAME);
+}
+
+async function test_remove_resource(pools, tier) {
+    const bucket = DEFAULT_BUCKET_NAME;
+    const test_file = DEFAULT_TEST_FILE;
+    console.log(`removing ${pools[0]} from ${tier}`);
+    await tier_functions.updateTierPools(tier, []);
+    console.log(`checking that the file ${test_file}passed into tier1`);
+    await pool_functions.checkFileInPool(test_file, pools[1], bucket);
+    console.log(`writing files directly into tier1`);
+    const test_file_tier1 = test_file + '1';
+    await write_test_file(bucket, test_file_tier1);
+    await pool_functions.checkFileInPool(test_file_tier1, pools[1], bucket);
+    let size = await get_pools_free_space(pools[1], 'MB');
+    await run_dataset(size / 3);
+    await checkAllFilesInTier(bucket, pools[1]);
+    const files_per_tier = await tier_functions.mapAllFilesIntoTiers(bucket);
+    console.log(JSON.stringify(files_per_tier));
+    await s3ops.delete_file(bucket, test_file_tier1);
+}
+
+async function test_add_resource(pools, tier) {
+    const bucket = DEFAULT_BUCKET_NAME;
+    const test_file = DEFAULT_TEST_FILE;
+    console.log(`adding ${pools[0]} to ${tier}`);
+    await tier_functions.updateTierPools(tier, pools[0]);
+    const test_file_tier0 = test_file + '0';
+    await write_test_file(bucket, test_file_tier0);
+    await pool_functions.checkFileInPool(test_file_tier0, pools[0], bucket);
+    const size = await get_pools_free_space(pools[0], 'MB');
+    await run_dataset(size / 3);
+    await pool_functions.checkFileInPool(test_file, pools[1], bucket);
+    await s3ops.delete_file(bucket, test_file_tier0);
+}
+
+async function test_remove_and_add_resource(pools) {
+    const tier = 'tier0';
+    await test_remove_resource(pools, tier);
+    await test_add_resource(pools, tier);
+}
+
+async function run_dataset(size, unit = 'MB') {
     //TODO: run the dataset in parallel.
     //TODO: divide the dataset into the concurrency
+    dataset_params.size_units = unit;
     dataset_params.dataset_size = size;
     console.log(JSON.stringify(dataset_params));
-    await dataset.init_parameters({ dataset_params, report_params }); //LMLM: Will need to change after marge with master
+    await dataset.init_parameters({ dataset_params, report_params });
     await dataset.run_test();
 }
 
@@ -326,39 +469,22 @@ async function main() {
     try {
         await azf.authenticate();
         await set_rpc_and_create_auth_token();
-        //TODO: 2nd step do all the below with just 1 pool
-        console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
-        // const pools = await createPools();
-        // await createAgents(agents_number, pools);
-        // await waitForOptimalHosts();
-        console.log(`${YELLOW}creating 2 tiers${NC}`);
-        //TODO: in 2nd stage do more, that include more agents in step number one
-        // const tiers = await createTiers(pools);
-        console.log(`${YELLOW}creating tier policy${NC}`);
-        // await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
-        // await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
-        console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
-        const pools = ['pool_tier0', 'pool_tier1'];
-        const size = await get_pools_free_space(pools[0], 'MB');
-        console.error(size); //LMLM remove!!!!
-        await run_dataset(size / 3);
-        console.log(`${YELLOW}checking that the files are in the first tier only${NC}`);
-        await checkAllFilesInTier(DEFAULT_BUCKET_NAME, pools[0]);
-        console.log(`${YELLOW}filling the first tier${NC}`);
-        await run_dataset(size / 3 * 2);
-        const files_per_tier = await tier_functions.mapAllFilesIntoTiers(DEFAULT_BUCKET_NAME);
-        //TODO: 8. Check that the files passed as LRU (oldest atime first)
-        //TODO: in 2nd step we need to test also the TTF
-        console.log(JSON.stringify(files_per_tier));
-        //TODO: 9. add space to the disks (free the manipulated space) and see that we can write again to tier0
-        //TODO: 10. read the files
-        //TODO: 11. check that the files passed from the second tier to the fist
+        //
+        const pools = await set_test_env();
+        // const pools = ['pool_tier0', 'pool_tier1']; //LMLM remove!!!!
+        //
+        await test_writes_into_first_tier(pools);
+        //
+        await test_file_migration(pools);
+        //
+        await fill_all_space_and_delete(pools);
+        //
+        await test_remove_and_add_resource(pools);
+        //TODO: 11. add space to the disks (free the manipulated space) and see that we can write again to tier0
         //TODO: 12. when the lower tiers are full see that we can still write (until the first is full...)
         //TODO: 13. try to read when all the agents in all the tiers are full
-        //TODO: 14. delete some file from each tier
+        //
         //TODO: 15. update the tiers policy, and see that the files are rearranging.
-        //TODO: 16. delete the policy, what should happens
-        //TODO: 17. delete the tiers, what should happens
         process.exit(0);
     } catch (e) {
         console.error(e);

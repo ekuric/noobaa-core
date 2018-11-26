@@ -1,10 +1,13 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
+const { S3OPS } = require('../utils/s3ops');
 
 class TierFunction {
 
-    constructor(client) {
+    constructor(client, server_ip) {
         this._client = client;
+        this._ip = server_ip;
+        this._s3ops = new S3OPS({ ip: this._ip });
     }
 
     async createTier(name, attached_pools) {
@@ -30,6 +33,16 @@ class TierFunction {
     async updateTierName(name, new_name) {
         try {
             const tier = await this._client.tier.update_tier({ name, new_name });
+            return tier;
+        } catch (err) {
+            console.log('Update Tier ERR', err);
+            throw err;
+        }
+    }
+
+    async updateTierPools(name, attached_pools) {
+        try {
+            const tier = await this._client.tier.update_tier({ name, attached_pools });
             return tier;
         } catch (err) {
             console.log('Update Tier ERR', err);
@@ -94,23 +107,33 @@ class TierFunction {
     }
 
     async mapAllFilesIntoTiers(bucket) {
-        const list_files = await this._s3ops.get_list_files(bucket);
-        const file_names = list_files.map(key => key.Key);
-        const reply = {};
-        for (const file_name of file_names) {
-            reply[file_name] = [];
-            const object_mappings = await this._client.object.read_object_mappings({
-                bucket,
-                key: file_name,
-                adminfo: true
-            });
-            object_mappings.parts.forEach(part => {
-                if (!reply[file_name].includes(part.chunk.tier)) {
-                    reply[file_name].push(part.chunk.tier);
-                }
-            });
+        console.log(`getting list of files from bucket ${bucket}`);
+        let list_files;
+        try {
+            list_files = await this._s3ops.get_list_files(bucket);
+        } catch (e) {
+            throw new Error(`mapAllFilesIntoTiers:: s3ops.get_list_files failed with ${e}`);
         }
-        return reply;
+        try {
+            const file_names = list_files.map(key => key.Key);
+            const reply = {};
+            for (const file_name of file_names) {
+                reply[file_name] = [];
+                const object_mappings = await this._client.object.read_object_mappings({
+                    bucket,
+                    key: file_name,
+                    adminfo: true
+                });
+                object_mappings.parts.forEach(part => {
+                    if (!reply[file_name].includes(part.chunk.tier)) {
+                        reply[file_name].push(part.chunk.tier);
+                    }
+                });
+            }
+            return reply;
+        } catch (e) {
+            throw new Error(`mapAllFilesIntoTiers:: client.object.read_object_mappings failed with ${e}`);
+        }
     }
 }
 
