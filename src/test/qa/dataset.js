@@ -62,8 +62,8 @@ const UNIT_MAPPING = {
     }
 };
 
-const DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
-const JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
+let DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
+let JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
 const CFG_MARKER = 'DATASETCFG-';
 const ACTION_MARKER = 'ACT-';
 
@@ -698,6 +698,8 @@ async function run_multi_delete(params) {
 function init_parameters({ dataset_params, report_params }) {
     TEST_STATE = { ...TEST_STATE_INITIAL };
     TEST_CFG = _.defaults(_.pick(dataset_params, _.keys(TEST_CFG)), TEST_CFG);
+    DATASET_NAME = 'DataSet_' + (Math.floor(Date.now() / 1000));
+    JOURNAL_FILE = `./${DATASET_NAME}_journal.log`;
 
     update_dataset_sizes();
     const suite_name = report_params.suite_name || test_name;

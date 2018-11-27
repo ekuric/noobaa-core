@@ -84,10 +84,8 @@ const dataset_params = {
     max_depth: 10,
     min_depth: 1,
     size_units: 'MB',
-    // file_size_low: 50,
-    // file_size_high: 200,
-    file_size_low: 250, //TODO: remove
-    file_size_high: 500, //TODO: remove
+    file_size_low: 50,
+    file_size_high: 200,
     no_exit_on_success: true,
     dataset_size: 1024 * 1,
     suite_name: suite_name,
@@ -231,7 +229,7 @@ async function readAllFilesInBucket(bucket) {
     try {
         const file_list = await pool_functions.getAllBucketsFiles(bucket);
         for (const file_name of file_list) {
-            console.log(`checking ${file_name}`);
+            console.log(`checking ${file_name}, ${file_list.indexOf(file_name) + 1} out of ${file_list.length}`);
             try {
                 await s3ops.get_file_check_md5(bucket, file_name);
             } catch (e) {
@@ -340,6 +338,8 @@ async function write_test_file(bucket, test_file) {
 }
 
 async function set_test_env() {
+    const bucket = DEFAULT_BUCKET_NAME;
+    const test_file = DEFAULT_TEST_FILE;
     //TODO: 2nd step do all the below with just 1 pool
     console.log(`${YELLOW}creating 2 pools and assign 3 agent for each${NC}`);
     const pools = await createPools();
@@ -350,13 +350,14 @@ async function set_test_env() {
     const tiers = await createTiers(pools);
     console.log(`${YELLOW}creating tier policy${NC}`);
     await setTierPolicy(tiers, DEFAULT_TIER_POLICY_NAME);
-    await bucket_functions.createBucketWithPolicy(DEFAULT_BUCKET_NAME, DEFAULT_TIER_POLICY_NAME);
-    console.log(`${YELLOW}writing some files to the pool (via the bucket)${NC}`);
-    await write_test_file(DEFAULT_BUCKET_NAME, DEFAULT_TEST_FILE);
+    await bucket_functions.createBucketWithPolicy(bucket, DEFAULT_TIER_POLICY_NAME);
+    console.log(`${YELLOW}writing a test file (${test_file}) to the pool (via bucket: ${bucket})${NC}`);
+    await write_test_file(bucket, test_file);
     return pools;
 }
 
 async function test_writes_into_first_tier(pools) {
+    console.log(`${YELLOW}testing writes into the first tier${NC}`);
     const bucket = DEFAULT_BUCKET_NAME;
     const size = await get_pools_free_space(pools[0], 'MB');
     await run_dataset(size / 3);
@@ -460,6 +461,9 @@ async function run_dataset(size, unit = 'MB') {
     //TODO: divide the dataset into the concurrency
     dataset_params.size_units = unit;
     dataset_params.dataset_size = size;
+    //We do that in order to contain the number of files.
+    dataset_params.file_size_low = size / 10;
+    dataset_params.file_size_high = size / 5;
     console.log(JSON.stringify(dataset_params));
     await dataset.init_parameters({ dataset_params, report_params });
     await dataset.run_test();
@@ -477,9 +481,10 @@ async function main() {
         //
         await test_file_migration(pools);
         //
-        await fill_all_space_and_delete(pools);
+        //await fill_all_space_and_delete(pools); //LMLM enable this...
         //
         await test_remove_and_add_resource(pools);
+        //TODO: add tier1 as cloud resource 
         //TODO: 11. add space to the disks (free the manipulated space) and see that we can write again to tier0
         //TODO: 12. when the lower tiers are full see that we can still write (until the first is full...)
         //TODO: 13. try to read when all the agents in all the tiers are full
