@@ -623,6 +623,18 @@ function update_member_of_cluster(req) {
         .return();
 }
 
+async function load_system_store() {
+    await server_rpc.client.redirector.publish_to_cluster({
+        method_api: 'server_inter_process_api',
+        method_name: 'load_system_store',
+        target: ''
+    });
+}
+
+async function publish_load_system_store() {
+    await _publish_to_cluster('load_system_store');
+}
+
 function news_config_servers(req) {
     dbg.log0('Recieved news: news_config_servers', cutil.pretty_topology(req.rpc_params));
     //Verify we recieved news on the cluster we are joined to
@@ -1859,5 +1871,7 @@ exports.update_server_conf = update_server_conf;
 exports.set_hostname_internal = set_hostname_internal;
 exports.get_version = get_version;
 exports.get_secret = get_secret;
+exports.publish_load_system_store = publish_load_system_store;
+exports.load_system_store = load_system_store;
 exports.update_member_of_cluster = update_member_of_cluster;
 exports.upgrade_cluster = upgrade_server.upgrade_cluster;

@@ -680,11 +680,7 @@ class SystemStore extends EventEmitter {
                     return this.load();
                 } else {
                     // notify all the cluster (including myself) to reload
-                    return server_rpc.client.redirector.publish_to_cluster({
-                        method_api: 'server_inter_process_api',
-                        method_name: 'load_system_store',
-                        target: ''
-                    });
+                    return server_rpc.client.cluster_internal.publish_load_system_store();
                 }
             });
     }

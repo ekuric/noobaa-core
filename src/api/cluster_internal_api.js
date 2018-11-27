@@ -140,6 +140,22 @@ module.exports = {
             }
         },
 
+        publish_load_system_store: {
+            doc: 'notify on system_store load to all cluster members',
+            method: 'POST',
+            auth: {
+                system: false
+            }
+        },
+
+        load_system_store: {
+            doc: 'notify on system_store load to all cluster members',
+            method: 'POST',
+            auth: {
+                system: false
+            }
+        },
+
         news_config_servers: {
             doc: 'published the config server IPs to the cluster',
             method: 'POST',
