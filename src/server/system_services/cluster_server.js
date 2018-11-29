@@ -1696,11 +1696,17 @@ function _add_new_config_on_server(cfg_array, params) {
 
 function _publish_to_cluster(apiname, req_params) {
     var servers = [];
-    _.each(cutil.get_topology().shards, function(shard) {
-        _.each(shard.servers, function(single_srv) {
-            servers.push(single_srv.address);
+    const topology = cutil.get_topology();
+    if (topology) {
+        _.each(topology.shards, function(shard) {
+            _.each(shard.servers, function(single_srv) {
+                servers.push(single_srv.address);
+            });
         });
-    });
+    } else {
+        // if there is no topology than push local host
+        servers.push('127.0.0.1');
+    }
 
     dbg.log0('Sending cluster news:', apiname, 'to:', servers, 'with:', req_params);
     return P.map(servers, function(server) {
