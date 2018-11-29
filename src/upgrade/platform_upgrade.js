@@ -471,9 +471,9 @@ async function _create_packages_md5() {
 async function update_services(old_version) {
     dbg.log0('UPGRADE: updating services in noobaa_supervisor.conf');
     // perform specific platform upgrades according to old version
-    const [major_ver, minor_ver] = parse_ver(old_version.split('-')[0]);
+    const [major_ver, minor_ver, patch] = parse_ver(old_version.split('-')[0]);
     if (major_ver <= 2) {
-        if (minor_ver < 10) await update_services_2_10_0();
+        if (minor_ver < 10 || (minor_ver === 10 && patch < 1)) await update_services_2_10_0();
     }
 
 }
