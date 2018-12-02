@@ -632,7 +632,16 @@ async function load_system_store() {
 }
 
 async function publish_load_system_store() {
-    await _publish_to_cluster('load_system_store');
+    try {
+        await P.resolve()
+            .then(() => _publish_to_cluster('load_system_store'))
+            .catch(err => {
+                dbg.error(`error in _publish_to_cluster('load_system_store')`, err);
+            })
+            .timeout(10000);
+    } catch (err) {
+        console.error('publish_load_system_store is taking more than 10 seconds..');
+    }
 }
 
 function news_config_servers(req) {
