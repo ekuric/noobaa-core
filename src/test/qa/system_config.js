@@ -35,7 +35,8 @@ const {
     tcp_rsyslog_port = 514,
     ph_proxy_port = 5003,
     skip_report = false,
-    help = false
+    help = false,
+    check_restrictions = false
 } = argv;
 
 let configured_dns = [primary_dns, secondery_dns];
@@ -50,6 +51,7 @@ function usage() {
     --udp_rsyslog_port      -   udp rsyslog port (default: ${udp_rsyslog_port})
     --tcp_rsyslog_port      -   tcp rsyslog port (default: ${tcp_rsyslog_port})
     --ph_proxy_port         -   Phone home proxy port (default: ${ph_proxy_port})
+    --check_restrictions    -   only run tests that are supported according to platform_restrictions
     --skip_report           -   will skip sending report to mongo
     --id                    -   an id that is attached to the agents name
     --help                  -   show this help.
@@ -644,13 +646,25 @@ async function main() {
             system_info = await client.system.read_system({});
             secret = system_info.cluster.shards[0].servers[0].secret;
         }
-        await set_DNS_And_check();
-        await set_NTP_And_check();
-        await set_Phonehome_and_check();
-        await remote_syslog('TCP', secret);
-        await remote_syslog('UDP', secret);
+
+        const { platform_restrictions = [] } = check_restrictions ?
+            await client.system.read_system({}) : {};
+
+        console.log(`DZDZ: platform_restrictions = `, platform_restrictions);
+
+        if (!platform_restrictions.includes('dns_server')) {
+            await set_DNS_And_check();
+        }
+        if (!platform_restrictions.includes('time_config')) {
+            await set_NTP_And_check();
+        }
+        // await set_Phonehome_and_check();
+        // await remote_syslog('TCP', secret);
+        // await remote_syslog('UDP', secret);
         await set_maintenance_mode_and_check();
-        await update_n2n_config_and_check();
+        if (!platform_restrictions.includes('peer_to_peer_ports')) {
+            await update_n2n_config_and_check();
+        }
         await set_debug_level_and_check();
         await set_diagnose_system_and_check();
         rpc.disconnect_all();
