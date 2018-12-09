@@ -23,6 +23,11 @@
             "ver": "2.10.0",
             "vhd": "2.10.0-33fe3e2.vhd",
             "released": true
+        },
+        {
+            "ver": "2.11.0",
+            "vhd": "noobaa-RHEL7.vhd",
+            "released": true
         }
     ]
 }
