@@ -99,7 +99,7 @@ node('pipeline') {
             export NVM_DIR=/opt/nvm
             . /opt/nvm/nvm.sh &> /dev/null
             id=\$(cat /tmp/pipeline.xml | awk -F "<number>" '{print \$2}' | awk -F "</number>" '{print \$1}' | tail -1)1
-            flags="${azureEnv} --name account --id \${id} --random_base_version --min_version 2.3"
+            flags="${azureEnv} --name account --id \${id}" #--random_base_version --min_version 2.3"
             ${env_builder} \${flags} \
                 --js_script $WORKSPACE/src/test/pipeline/account_pipeline.js
             """
@@ -262,7 +262,7 @@ node('pipeline') {
             export NVM_DIR=/opt/nvm
             . /opt/nvm/nvm.sh &> /dev/null
             id=\$(cat /tmp/pipeline.xml | awk -F "<number>" '{print \$2}' | awk -F "</number>" '{print \$1}' | tail -1)11  
-            flags="${azureEnv} --name SystemConfig --id \${id} --skip_agent_creation --random_base_version --min_version 2.9"
+            flags="${azureEnv} --name SystemConfig --id \${id} --skip_agent_creation" #--random_base_version --min_version 2.9"
             ${env_builder} \${flags} \
                 --js_script $WORKSPACE/src/test/pipeline/system_config_pipeline.js
             """
