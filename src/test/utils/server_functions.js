@@ -106,7 +106,7 @@ async function remove_swap_on_azure(server_ip, secret) {
     }
 }
 
-async function map_new_disk_linux(server_ip, secret) {
+async function map_new_disk_linux(agent_ip) {
     console.log(`LMLM:: map_new_disk_linux`);
     try {
         const client_ssh = await ssh.ssh_connect({
