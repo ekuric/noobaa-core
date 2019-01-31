@@ -364,6 +364,30 @@ function setup_supervisors {
     sed -i 's:pidfile=/tmp/supervisord.pid.*:pidfile=/var/log/supervisord.pid:' /etc/supervisord.conf
     sed -i 's:serverurl=unix.*:serverurl=unix\:///var/log/supervisor.sock:' /etc/supervisord.conf
 
+    echo "
+[program:noobaa_init]
+stopsignal=KILL
+killasgroup=true
+stopasgroup=true
+autostart=true
+autorestart=unexpected  ; when to restart if exited after running (def: unexpected)
+exitcodes=0             ; 'expected' exit codes used with autorestart (default 0,2)
+directory=/root/node_modules/noobaa-core
+stderr_logfile_backups=3
+stdout_logfile_backups=3
+command=/root/node_modules/noobaa-core/src/deploy/NVA_build/noobaa_init.sh
+
+[program:rsyslog]
+stopsignal=TERM
+killasgroup=true
+stopasgroup=true
+autostart=true
+autorestart=true
+directory=/root/node_modules/noobaa-core
+stderr_logfile_backups=3
+stdout_logfile_backups=3
+command=rsyslogd -n" >> /etc/supervisord.conf
+
     # Autostart supervisor
     deploy_log "setup_supervisors autostart"
     cp -f ${CORE_DIR}/src/deploy/NVA_build/supervisord.orig /etc/rc.d/init.d/supervisord
