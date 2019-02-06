@@ -31,7 +31,7 @@ function init_reporter(report_params) {
 }
 
 //will enable noobaa user login via ssh
-async function enable_nooba_login(server_ip, secret) {
+async function enable_noobaa_login(server_ip, secret) {
     const client_ssh = await ssh.ssh_connect({
         host: server_ip,
         //  port: 22,
@@ -326,7 +326,7 @@ async function add_server_to_cluster(master_ip, slave_ip, slave_secret, slave_na
 }
 
 
-exports.enable_nooba_login = enable_nooba_login;
+exports.enable_noobaa_login = enable_noobaa_login;
 exports.set_first_install_mark = set_first_install_mark;
 exports.clean_ova = clean_ova;
 exports.map_new_disk_linux = map_new_disk_linux;

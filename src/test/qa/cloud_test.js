@@ -68,7 +68,7 @@ if (argv.help) {
     process.exit(1);
 }
 
-// we require this here so --help will not call datasets help.
+// we require this here so --help will not call dataset help.
 const dataset = require('./dataset.js');
 
 console.log(`${YELLOW}resource: ${resource}, storage: ${storage}, vnet: ${vnet}${NC}`);
