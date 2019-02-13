@@ -1,6 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const { SensitiveString } = require('../util/schema_utils');
+
 /**
  *
  * COMMON API
@@ -380,16 +382,20 @@ module.exports = {
             }
         },
 
+        access_key: {
+            wrapper: SensitiveString,
+        },
+
+        secret_key: {
+            wrapper: SensitiveString,
+        },
+
         access_keys: {
             type: 'object',
             required: ['access_key', 'secret_key'],
             properties: {
-                access_key: {
-                    type: 'string',
-                },
-                secret_key: {
-                    type: 'string',
-                }
+                access_key: { $ref: '#/definitions/access_key' },
+                secret_key: { $ref: '#/definitions/secret_key' },
             }
         },
 
@@ -506,6 +512,22 @@ module.exports = {
                 },
             }
         },
+
+        bucket_name: {
+            wrapper: SensitiveString,
+        },
+
+        email: {
+            wrapper: SensitiveString,
+        },
+
+        account_name: {
+            wrapper: SensitiveString,
+        },
+
+        password: {
+            wrapper: SensitiveString,
+        }
 
 
     }

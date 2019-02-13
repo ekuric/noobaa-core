@@ -245,7 +245,7 @@ async function complete_object_upload(req) {
         event: 'obj.uploaded',
         obj: obj._id,
         actor: req.account && req.account._id,
-        desc: `${obj.key} was uploaded by ${req.account && req.account.email} into bucket ${req.bucket.name}.` +
+        desc: `${obj.key} was uploaded by ${req.account && req.account.email.unwrap()} into bucket ${req.bucket.name}.` +
             `\nUpload size: ${upload_size}.` +
             `\nUpload duration: ${upload_duration}.` +
             `\nUpload speed: ${upload_speed}/sec.`,
@@ -258,7 +258,7 @@ async function complete_object_upload(req) {
 }
 
 async function update_bucket_counters({ system, bucket_name, content_type, read_count, write_count }) {
-    const bucket = system.buckets_by_name[bucket_name];
+    const bucket = system.buckets_by_name[bucket_name.unwrap()];
     if (!bucket) return;
     await BucketStatsStore.instance().update_bucket_counters({
         system: system._id,
@@ -584,7 +584,7 @@ async function delete_object(req) {
             event: 'obj.deleted',
             obj: obj._id,
             actor: req.account && req.account._id,
-            desc: `${obj.key} was deleted by ${req.account && req.account.email}`,
+            desc: `${obj.key} was deleted by ${req.account && req.account.email.unwrap()}`,
         });
 
         const event_name = 'ObjectRemoved:Delete';
@@ -959,7 +959,7 @@ async function add_endpoint_usage_report(req) {
         insert.system = req.system._id;
 
         if (record.bucket) {
-            const bucket = req.system.buckets_by_name[record.bucket];
+            const bucket = req.system.buckets_by_name[record.bucket.unwrap()];
             if (bucket) insert.bucket = bucket._id;
         }
 
@@ -1055,7 +1055,7 @@ function get_object_info(md) {
 }
 
 function load_bucket(req) {
-    var bucket = req.system.buckets_by_name[req.rpc_params.bucket];
+    var bucket = req.system.buckets_by_name[req.rpc_params.bucket.unwrap()];
     if (!bucket) {
         throw new RpcError('NO_SUCH_BUCKET', 'No such bucket: ' + req.rpc_params.bucket);
     }

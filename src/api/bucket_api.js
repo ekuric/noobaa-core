@@ -1,6 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const { SensitiveString } = require('../util/schema_utils');
+
 /**
  *
  * BUCKET API
@@ -20,9 +22,9 @@ module.exports = {
                 type: 'object',
                 required: ['name'],
                 properties: {
-                    name: { type: 'string' },
+                    name: { wrapper: SensitiveString },
                     // if tiering is provided then chunk_coder_config & chunk_split_config are ignored!
-                    tiering: { type: 'string' },
+                    tiering: { wrapper: SensitiveString },
                     chunk_split_config: { $ref: 'common_api#/definitions/chunk_split_config' },
                     chunk_coder_config: { $ref: 'common_api#/definitions/chunk_coder_config' },
                     tag: { type: 'string' },
@@ -58,7 +60,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -143,7 +145,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -189,7 +191,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -205,7 +207,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -227,7 +229,7 @@ module.exports = {
                             required: ['name'],
                             properties: {
                                 name: {
-                                    type: 'string'
+                                    wrapper: SensitiveString,
                                 },
                             }
                         }
@@ -246,12 +248,12 @@ module.exports = {
                 required: ['name', 'allowed_accounts'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     allowed_accounts: {
                         type: 'array',
                         items: {
-                            type: 'string'
+                            wrapper: SensitiveString
                         }
                     }
                 }
@@ -268,7 +270,7 @@ module.exports = {
                 required: ['name', 'since', 'till'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     since: {
                         idate: true
@@ -295,7 +297,7 @@ module.exports = {
                     buckets: {
                         type: 'array',
                         items: {
-                            type: 'string'
+                            wrapper: SensitiveString,
                         }
                     },
                     since: { idate: true },
@@ -345,7 +347,7 @@ module.exports = {
                     type: 'object',
                     properties: {
                         name: {
-                            type: 'string'
+                            wrapper: SensitiveString,
                         },
                         stats: {
                             type: 'array',
@@ -428,14 +430,14 @@ module.exports = {
                     required: ['name'],
                     properties: {
                         name: {
-                            type: 'string'
+                            wrapper: SensitiveString,
                         },
                         used_by: {
                             type: 'object',
                             required: ['name', 'usage_type'],
                             properties: {
                                 name: {
-                                    type: 'string'
+                                    wrapper: SensitiveString,
                                 },
                                 usage_type: {
                                     type: 'string',
@@ -456,7 +458,7 @@ module.exports = {
                 type: 'object',
                 properties: {
                     name: {
-                        type: 'string'
+                        wrapper: SensitiveString,
                     },
                     rules: {
                         type: 'array',
@@ -541,7 +543,7 @@ module.exports = {
                 type: 'object',
                 properties: {
                     name: {
-                        type: 'string'
+                        wrapper: SensitiveString,
                     }
                 }
             },
@@ -642,7 +644,7 @@ module.exports = {
                         objectid: true
                     },
                     bucket_name: {
-                        type: 'string'
+                        wrapper: SensitiveString,
                     }
                 }
             },
@@ -668,7 +670,7 @@ module.exports = {
             required: ['name', 'bucket_type', 'tiering', 'versioning', 'usage_by_pool', 'storage', 'data', 'num_objects', 'host_tolerance', 'node_tolerance', 'writable', 'mode'],
             properties: {
                 name: {
-                    type: 'string',
+                    wrapper: SensitiveString,
                 },
                 bucket_type: {
                     enum: ['REGULAR', 'NAMESPACE'],
@@ -905,13 +907,13 @@ module.exports = {
             required: ['name'],
             properties: {
                 name: {
-                    type: 'string',
+                    wrapper: SensitiveString,
                 },
                 new_name: {
-                    type: 'string',
+                    wrapper: SensitiveString,
                 },
                 tiering: {
-                    type: 'string',
+                    wrapper: SensitiveString,
                 },
                 new_tag: {
                     type: 'string',
@@ -1046,7 +1048,7 @@ module.exports = {
             required: ['bucket_name', 'event_name', 'func_name'],
             properties: {
                 bucket_name: {
-                    type: 'string'
+                    wrapper: SensitiveString,
                 },
                 event_name: {
                     $ref: '#/definitions/event_name'
@@ -1077,7 +1079,7 @@ module.exports = {
                     objectid: true
                 },
                 bucket_name: {
-                    type: 'string'
+                    wrapper: SensitiveString,
                 },
                 event_name: {
                     $ref: '#/definitions/event_name'

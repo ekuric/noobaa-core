@@ -1,6 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const { SensitiveString } = require('../util/schema_utils');
+
 /**
  *
  * TIER API
@@ -21,7 +23,7 @@ module.exports = {
                 type: 'object',
                 required: ['name'],
                 properties: {
-                    name: { type: 'string' },
+                    name: { wrapper: SensitiveString },
                     chunk_coder_config: { $ref: 'common_api#/definitions/chunk_coder_config' },
                     data_placement: { $ref: '#/definitions/data_placement_enum' },
                     attached_pools: { $ref: '#/definitions/pool_info' },
@@ -43,7 +45,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -62,8 +64,8 @@ module.exports = {
                 type: 'object',
                 required: ['name'],
                 properties: {
-                    name: { type: 'string' },
-                    new_name: { type: 'string' },
+                    name: { wrapper: SensitiveString },
+                    new_name: { wrapper: SensitiveString },
                     chunk_coder_config: { $ref: 'common_api#/definitions/chunk_coder_config' },
                     attached_pools: { $ref: '#/definitions/pool_info' },
                     data_placement: { $ref: '#/definitions/data_placement_enum' },
@@ -82,7 +84,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -104,7 +106,7 @@ module.exports = {
                 'data'
             ],
             properties: {
-                name: { type: 'string' },
+                name: { wrapper: SensitiveString },
                 chunk_coder_config: { $ref: 'common_api#/definitions/chunk_coder_config' },
                 data_placement: { $ref: '#/definitions/data_placement_enum' },
                 attached_pools: { $ref: '#/definitions/pool_info' },

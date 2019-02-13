@@ -14,6 +14,7 @@ const ActivityLogStore = require('../analytic_services/activity_log_store').Acti
 const system_store = require('../system_services/system_store').get_instance();
 const nodes_store = require('../node_services/nodes_store').NodesStore.instance();
 const nodes_client = require('../node_services/nodes_client');
+const { SensitiveString } = require('../../util/schema_utils');
 
 const SYSLOG_INFO_LEVEL = 5;
 const SYSLOG_LOG_LOCAL0 = 'LOG_LOCAL0';
@@ -45,6 +46,7 @@ class Dispatcher {
     //Activity Log
     activity(item) {
         var self = this;
+        item.desc = new SensitiveString(item.desc);
         dbg.log0('Adding ActivityLog entry', item);
         item.time = item.time || new Date();
         return ActivityLogStore.instance().create(item)

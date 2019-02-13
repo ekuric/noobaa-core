@@ -1,6 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const { SensitiveString } = require('../util/schema_utils');
+
 /**
  *
  * TIERING POLICY API
@@ -49,7 +51,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -69,7 +71,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -89,7 +91,7 @@ module.exports = {
                 required: ['name'],
                 properties: {
                     name: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                 }
             },
@@ -105,7 +107,7 @@ module.exports = {
             type: 'object',
             required: ['name', 'tiers'],
             properties: {
-                name: { type: 'string' },
+                name: { wrapper: SensitiveString },
                 data: { $ref: 'common_api#/definitions/storage_info' },
                 storage: { $ref: 'common_api#/definitions/storage_info' },
                 chunk_split_config: { $ref: 'common_api#/definitions/chunk_split_config' },
@@ -119,7 +121,7 @@ module.exports = {
                                 type: 'integer',
                             },
                             tier: {
-                                type: 'string',
+                                wrapper: SensitiveString,
                             },
                             spillover: {
                                 type: 'boolean'

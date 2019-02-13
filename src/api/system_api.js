@@ -1,6 +1,8 @@
 /* Copyright (C) 2016 NooBaa */
 'use strict';
 
+const { SensitiveString } = require('../util/schema_utils');
+
 /**
  *
  * SYSTEM API
@@ -26,10 +28,10 @@ module.exports = {
                         type: 'string',
                     },
                     email: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     password: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     activation_code: {
                         type: 'string',
@@ -186,7 +188,7 @@ module.exports = {
                 required: ['role', 'email'],
                 properties: {
                     email: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     role: {
                         $ref: '#/definitions/role_enum'
@@ -206,7 +208,7 @@ module.exports = {
                 required: ['role', 'email'],
                 properties: {
                     email: {
-                        type: 'string',
+                        wrapper: SensitiveString,
                     },
                     role: {
                         $ref: '#/definitions/role_enum'
@@ -442,7 +444,7 @@ module.exports = {
                 required: ['email'],
                 properties: {
                     email: {
-                        type: 'string'
+                        wrapper: SensitiveString,
                     }
                 }
             },
@@ -462,7 +464,7 @@ module.exports = {
                         type: 'string'
                     },
                     email: {
-                        type: 'string'
+                        wrapper: SensitiveString,
                     },
                     proxy_address: {
                         type: 'string'
@@ -710,7 +712,7 @@ module.exports = {
                                     idate: true
                                 },
                                 last_initiator_email: {
-                                    type: 'string'
+                                    wrapper: SensitiveString,
                                 }
                             }
                         },
@@ -777,10 +779,10 @@ module.exports = {
                     required: ['name', 'email'],
                     properties: {
                         name: {
-                            type: 'string',
+                            wrapper: SensitiveString,
                         },
                         email: {
-                            type: 'string',
+                            wrapper: SensitiveString,
                         },
                     }
                 }
@@ -986,7 +988,7 @@ module.exports = {
                             }
                         },
                         initiator_email: {
-                            type: 'string'
+                            wrapper: SensitiveString,
                         },
                         tested_date: {
                             idate: true

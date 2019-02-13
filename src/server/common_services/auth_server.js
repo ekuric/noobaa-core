@@ -59,7 +59,7 @@ function create_auth(req) {
             if (!password) return;
 
             return P.resolve()
-                .then(() => bcrypt.compare(password, target_account.password))
+                .then(() => bcrypt.compare(password.unwrap(), target_account.password.unwrap()))
                 .then(match => {
                     dbg.log0('password mismatch', email, system_name);
                     if (!match) throw new RpcError('UNAUTHORIZED', 'credentials not found');
@@ -299,8 +299,8 @@ function _authorize_signature_token(req) {
 
     const account = _.find(system_store.data.accounts, function(acc) {
         return acc.access_keys &&
-            acc.access_keys[0].access_key.toString() ===
-            auth_token_obj.access_key.toString();
+            acc.access_keys[0].access_key.unwrap() ===
+            auth_token_obj.access_key;
     });
     if (!account || account.deleted) {
         throw new RpcError('UNAUTHORIZED', 'account not found');
@@ -326,7 +326,7 @@ function _authorize_signature_token(req) {
         client_ip: auth_token_obj.client_ip,
     };
 
-    const signature = signature_utils.get_signature_from_auth_token(auth_token_obj, secret_key);
+    const signature = signature_utils.get_signature_from_auth_token(auth_token_obj, secret_key.unwrap());
 
     if (auth_token_obj.signature !== signature) {
         dbg.error('Signature for access key:', auth_token_obj.access_key,
