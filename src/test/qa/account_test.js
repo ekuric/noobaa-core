@@ -73,7 +73,7 @@ const cases = [
     'restrict_ip_access',
     'reset_password'
 ];
-report.init_reporter({ suite: test_name, conf: TEST_CFG, mongo_report: true, cases: cases});
+report.init_reporter({ suite: test_name, conf: TEST_CFG, mongo_report: true, cases: cases });
 
 function saveErrorAndResume(message) {
     console.error(message);
@@ -83,7 +83,7 @@ function saveErrorAndResume(message) {
 async function get_accounts_emails() {
     try {
         const system_info = await client.system.read_system();
-        const emails = system_info.accounts.map(account => account.email);
+        const emails = system_info.accounts.map(account => account.email.unwrap());
         console.log("Accounts list: " + emails);
         return emails;
     } catch (err) {
@@ -96,10 +96,10 @@ async function get_s3_account_access(email) {
     try {
         const system_info = await client.system.read_system();
         const accounts = system_info.accounts;
-        const account = _.find(accounts, accountObj => accountObj.email === email);
+        const account = _.find(accounts, accountObj => accountObj.email.unwrap() === email);
         const s3AccessKeys = {
-            accessKeyId: account.access_keys[0].access_key,
-            secretAccessKey: account.access_keys[0].secret_key,
+            accessKeyId: account.access_keys[0].access_key.unwrap(),
+            secretAccessKey: account.access_keys[0].secret_key.unwrap(),
             access: account.has_s3_access
         };
         console.log("S3 access keys: " + s3AccessKeys.accessKeyId, s3AccessKeys.secretAccessKey);
@@ -114,7 +114,7 @@ async function get_account_create_bucket_status(email) {
     try {
         const system_info = await client.system.read_system();
         const accounts = system_info.accounts;
-        const account = _.find(accounts, accountObj => accountObj.email === email);
+        const account = _.find(accounts, accountObj => accountObj.email.unwrap() === email);
         return account.can_create_buckets;
     } catch (err) {
         console.error('Getting create bucket status return error: ', err);
@@ -154,7 +154,7 @@ async function create_account(has_login, account_name) {
     try {
         await client.account.create_account(accountData);
         await report.success('create_account');
-        return accountData.email;
+        return accountData.email.unwrap();
     } catch (err) {
         report.fail('create_account');
         console.error('Creating account Failed with error: ', err);
