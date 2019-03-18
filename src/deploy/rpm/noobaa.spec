@@ -40,10 +40,10 @@ Requires:   nc
 Requires:   vim
 Requires:   less
 Requires:   bash-completion
-Requires: rh-mongodb36-mongodb = 3.6.3
-Requires: rh-mongodb36-mongo-tools = 3.6.3
-Requires: rhoar-nodejs10
-Requires: supervisor
+Requires:   rh-mongodb36-mongodb = 3.6.3
+Requires:   rh-mongodb36-mongo-tools = 3.6.3
+Requires:   rhoar-nodejs10
+Requires:   supervisor
 %endif
 
 
