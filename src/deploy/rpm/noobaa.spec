@@ -40,14 +40,6 @@ Requires:   nc
 Requires:   vim
 Requires:   less
 Requires:   bash-completion
-%if 0%{?centos} || 0%{?fedora}
-Requires:   python-setuptools = 0.9.8
-Requires:   mongodb-org = 3.6.3
-Requires:   mongodb-org-server = 3.6.3
-Requires:   mongodb-org-shell = 3.6.3
-Requires:   mongodb-org-mongos = 3.6.3
-Requires:   mongodb-org-tools = 3.6.3
-%else #rhel
 Requires: rh-mongodb36-mongodb = 3.6.3
 Requires: rh-mongodb36-mongo-tools = 3.6.3
 Requires: rhoar-nodejs10
