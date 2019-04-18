@@ -31,9 +31,10 @@ ENV container docker
 RUN mkdir /noobaa_storage
 ARG agent_entrypoint=./run_agent_container.sh
 ARG kube_pv_chown=./usr/local/noobaa/build/Release/kube_pv_chown
-RUN chgrp 0 /etc/passwd && chmod -R g=u /etc/passwd 
-#&& \
-#    chmod u+s /usr/bin/tar
+RUN chgrp 0 /etc/passwd && \
+    chmod -R g=u /etc/passwd && \
+    chgrp 0 /usr/local && \
+    chmod g=u /usr/local
 COPY --from=basenoobaa ${kube_pv_chown} ./bin/
 COPY --from=basenoobaa ${agent_entrypoint} .
 COPY --from=basenoobaa ./noobaa.tar.gz .

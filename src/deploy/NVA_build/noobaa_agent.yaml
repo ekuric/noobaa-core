@@ -52,11 +52,6 @@ spec:
           volumeMounts:
             - name: noobaastorage
               mountPath: /noobaa_storage
-            - name: tmp-logs-vol
-              mountPath: /usr/local/noobaa/logs
-      volumes:
-        - name: tmp-logs-vol
-          emptyDir: {}
   # These are converted to volume claims by the controller
   # and mounted at the paths mentioned above.
   volumeClaimTemplates:
