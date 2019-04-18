@@ -91,12 +91,6 @@ function install_platform {
         grub2-mkconfig –o /boot/grub2/grub.cfg
     fi
 
-    if [ ${ID} == "centos" ] || [ ${ID} == "fedora" ]
-    then
-        # easy_install is for Supervisord and comes from python-setuptools
-        easy_install supervisor
-    fi
-
     # By Default, NTP is disabled, set local TZ to US Pacific
     echo "#NooBaa Configured NTP Server"     >> /etc/ntp.conf
     echo "#NooBaa Configured Proxy Server"     >> /etc/yum.conf
@@ -173,36 +167,7 @@ function setup_linux_users {
 }
 
 function install_nodejs {
-    if [ ${ID} == "centos" ] || [ ${ID} == "fedora" ]
-    then
-        deploy_log "install_nodejs start"
-        export PATH=$PATH:/usr/local/bin
-
-        #Install Node.js / NPM
-        cd /usr/src
-        curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.6/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        source /root/.nvm/nvm.sh
-    
-        NODE_VER=$(cat ${CORE_DIR}/.nvmrc)
-        nvm install ${NODE_VER}
-        nvm alias default $(nvm current)
-
-        cd ~
-    fi
-    
     ln -sf $(which node) /usr/local/bin/node
-}
-
-function install_kubectl {
-    if [ "${container}" == "docker" ] && [ "${ID}" != "rhel" ]; then
-        deploy_log "install_kubectl start"
-        stable_version=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-        curl -LO https://storage.googleapis.com/kubernetes-release/release/${stable_version}/bin/linux/amd64/kubectl
-        chmod +x ./kubectl
-        sudo mv ./kubectl /usr/local/bin/kubectl
-        deploy_log "install_kubectl done"
-    fi
 }
 
 function install_noobaa_repos {
@@ -278,24 +243,6 @@ function setup_bash_completions {
 
 function general_settings {
 	deploy_log "general_settings start"
-
-    if [ "${container}" != "docker" ] && [ "${ID}" != "rhel" ]; then
-        #Open n2n ports
-        iptables -I INPUT 1 -p tcp --match multiport --dports 60100:60600 -j ACCEPT      
-        iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 8080 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 8443 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 8444 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 27000 -j ACCEPT
-        iptables -I INPUT 1 -p tcp --dport 26050 -j ACCEPT
-
-        #CVE-1999-0524
-        iptables -A INPUT -p ICMP --icmp-type timestamp-request -j DROP
-        iptables -A INPUT -p ICMP --icmp-type timestamp-reply -j DROP
-        service iptables save
-    fi
-
 
     echo "export LC_ALL=C" >> ~/.bashrc
     echo "export TERM=xterm" >> ~/.bashrc
@@ -522,7 +469,6 @@ function runinstall {
     install_noobaa_repos
     install_nodejs
     install_mongo
-    install_kubectl
     general_settings
     setup_supervisors
     setup_syslog

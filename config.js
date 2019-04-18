@@ -368,3 +368,11 @@ try {
     if (err.code !== 'MODULE_NOT_FOUND') throw err;
     console.log('NO LOCAL CONFIG');
 }
+
+//////////////////////////////
+// Account preferences      //
+//////////////////////////////
+
+config.DEFAULT_ACCOUNT_PREFERENCES = {
+    ui_theme: 'LIGHT'
+};

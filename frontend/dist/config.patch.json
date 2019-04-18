@@ -1,0 +1,8 @@
+{
+    "logo": "logo-down",
+    "themes": {
+        "light": "theme-down-light",
+        "dark": "theme-down-dark"
+    },
+    "defaultTheme": "light"
+}
