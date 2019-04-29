@@ -12,6 +12,14 @@ COPY ${noobaa_rpm} /tmp/noobaa.rpm
 COPY ${install_script} /tmp/install_noobaa.sh
 RUN chmod +x /tmp/install_noobaa.sh
 RUN /bin/bash -xc "/tmp/install_noobaa.sh"
+RUN echo '{
+"logo": "logo-down",
+"themes": {
+"light": "theme-down-light",
+"dark": "theme-down-dark"
+},
+"defaultTheme": "light"
+}' > /root/node_modules/noobaa-core/frontend/dist/config.patch.json
 
 
 ###############
