@@ -63,6 +63,7 @@ wget -P build/public/ https://nodejs.org/dist/${NODEJS_VERSION}/node-${NODEJS_VE
 wget -P build/public/ https://raw.githubusercontent.com/creationix/nvm/master/nvm.sh || exit 1
 
 echo "$(date) =====> tar noobaa-NVA-${NB_VERSION}.tar.gz"
+echo '{  "logo": "logo-down",   "themes": {        "light": "theme-down-light",        "dark": "theme-down-dark"    },    "defaultTheme": "light" }' > frontend/dist/config.patch.json
 tar \
     --transform='s:^:noobaa-core/:' \
     --exclude='src/native/aws-cpp-sdk' \
