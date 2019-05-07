@@ -15,9 +15,9 @@ dbg.set_process_name('spillover');
 
 let errors = [];
 let failures_in_test = false;
-const time_stemp = (Math.floor(Date.now() / 1000));
-const bucket = 'spillover.bucket' + time_stemp;
-const healthy_pool = 'healthy.pool' + time_stemp;
+const time_stamp = (Math.floor(Date.now() / 1000));
+const bucket = 'spillover.bucket' + time_stamp;
+const healthy_pool = 'healthy.pool' + time_stamp;
 
 //defining the required parameters
 const {
@@ -50,7 +50,7 @@ const suffix = 'spillover-' + id;
 function usage() {
     console.log(`
     --location              -   azure location (default: ${location})
-    --bucket                -   bucket to run on (default: spillover.bucket + timestemp)
+    --bucket                -   bucket to run on (default: spillover.bucket + timestamp)
     --resource              -   azure resource group
     --storage               -   azure storage on the resource group
     --vnet                  -   azure vnet on the resource group
