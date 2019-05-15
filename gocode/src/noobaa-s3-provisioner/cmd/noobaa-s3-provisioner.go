@@ -24,12 +24,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awsuser "github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/s3"
-
 	"github.com/golang/glog"
 	"github.com/yard-turkey/lib-bucket-provisioner/pkg/apis/objectbucket.io/v1alpha1"
 	libbkt "github.com/yard-turkey/lib-bucket-provisioner/pkg/provisioner"
@@ -43,7 +37,6 @@ import (
 )
 
 const (
-	defaultRegion    = "us-west-1"
 	httpPort         = 80
 	httpsPort        = 443
 	provisionerName  = "noobaa.io/bucket"
@@ -61,13 +54,7 @@ var (
 
 type noobaaS3Provisioner struct {
 	bucketName string
-	region     string
-	// session is the aws session
-	session *session.Session
-	// s3svc is the aws s3 service based on the session
-	s3svc *s3.S3
-	// iam client service
-	iamsvc *awsuser.IAM
+
 	//kube client
 	clientset *kubernetes.Clientset
 	// access keys for aws acct for the bucket *owner*
@@ -88,16 +75,6 @@ type noobaaS3Provisioner struct {
 func newNoobaaS3Provisioner(cfg *restclient.Config, s3Provisioner noobaaS3Provisioner) (*libbkt.Controller, error) {
 	const allNamespaces = ""
 	return libbkt.NewProvisioner(cfg, provisionerName, s3Provisioner, allNamespaces)
-}
-
-// Return the aws default session.
-func awsDefaultSession() (*session.Session, error) {
-
-	glog.V(2).Infof("Creating AWS *default* session")
-	return session.NewSession(&aws.Config{
-		Region: aws.String(defaultRegion),
-		//Credentials: credentials.NewStaticCredentials(os.Getenv),
-	})
 }
 
 // Return the OB struct with minimal fields filled in.
@@ -253,23 +230,6 @@ func (p *noobaaS3Provisioner) initializeNoobaaAccount() error {
 	p.bucketUserAccessID = accessKey
 	p.bucketUserSecretKey = secretKey
 	return nil
-}
-
-func (p *noobaaS3Provisioner) checkIfUserExists(name string) bool {
-
-	input := &awsuser.GetUserInput{
-		UserName: aws.String(name),
-	}
-
-	_, err := p.iamsvc.GetUser(input)
-	if err != nil {
-		if err.(awserr.Error).Code() == awsuser.ErrCodeEntityAlreadyExistsException {
-			return true
-		}
-		return false
-	}
-
-	return false
 }
 
 // Provision creates an aws s3 bucket and returns a connection info

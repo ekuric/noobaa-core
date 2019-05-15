@@ -95,24 +95,6 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func (p *noobaaS3Provisioner) createUserName(bkt string) string {
-	// prefix is bucket name
-	if len(bkt) > maxBucketLen {
-		bkt = bkt[:(maxBucketLen - 1)]
-	}
-
-	userbool := true
-	name := ""
-	i := 0
-	for ok := true; ok; ok = userbool {
-		name = fmt.Sprintf("%s-%s", bkt, randomString(genUserLen))
-		userbool = p.checkIfUserExists(name)
-		i++
-	}
-	glog.V(2).Infof("Generated user %s after %v iterations", name, i)
-	return name
-}
-
 // Get StorageClass from OBC and check params for createBucketUser and set
 // provisioner receiver field.
 func (p *noobaaS3Provisioner) setCreateBucketUserOptions(obc *v1alpha1.ObjectBucketClaim, sc *storageV1.StorageClass) {
