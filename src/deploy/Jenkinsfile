@@ -15,7 +15,7 @@ node('pipeline') {
 	try {
 		stage('Get code from GIT') {
 			echo 'Checkouting from git!'
-			checkout([$class: 'GitSCM', branches: [[name: "*/${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'git@github.com:noobaa/noobaa-core.git']]])
+			checkout([$class: 'GitSCM', branches: [[name: "*/${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '22686b32-d2c1-4a6f-9248-d89614dd8a3f', url: 'git@github.com:noobaa/noobaa-core.git']]])
 		}
 		stage('Preparing environment') {
 		    sh script: """
