@@ -25,7 +25,5 @@ tar --transform='s:^:noobaa-core/:' \
     -rf build/public/noobaa-NVA-${NB_VERSION}.tar \
     build/public/noobaa-setup-${NB_VERSION} \
     build/public/noobaa-setup-${NB_VERSION}.md5 \
-    build/public/noobaa-setup-${NB_VERSION}.exe \
-    build/public/noobaa-setup-${NB_VERSION}.exe.md5 \
     || exit 1
 gzip build/public/noobaa-NVA-${NB_VERSION}.tar
