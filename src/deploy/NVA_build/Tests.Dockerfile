@@ -1,47 +1,4 @@
-FROM centos:7 as base
-LABEL maintainer="Liran Mauda (lmauda@redhat.com)"
-
-##############################################################
-# Layers:
-#   Title: installing pre requirments
-#   Size: ~ 377 MB
-#   Cache: rebuild when we adding/removing requirments
-##############################################################
-ENV container docker
-RUN yum install -y -q wget unzip which vim && \
-    yum group install -y -q "Development Tools" && \ 
-    yum clean all
-RUN version="1.3.0" && \
-    wget -q http://www.tortall.net/projects/yasm/releases/yasm-${version}.tar.gz && \
-    tar xf yasm-${version}.tar.gz && \
-    pushd yasm-${version} && \
-    ./configure && \
-    make && \
-    make install && \
-    popd && \
-    rm -rf yasm-${version} yasm-${version}.tar.gz
-
-##############################################################
-# Layers:
-#   Title: Node.js install with nvm
-#   Size: ~ 61 MB
-#   Cache: rebuild when Node.js version change in .nvmrc
-#
-# In order to build this we should run 
-# docker build from the local repo 
-##############################################################
-COPY ./.nvmrc ./noobaa-core/.nvmrc
-RUN export PATH=$PATH:/usr/local/bin && \
-    cd /usr/src && \
-    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.6/install.sh | bash && \
-    export NVM_DIR="/root/.nvm" && \
-    source /root/.nvm/nvm.sh && \
-    NODE_VER=$(cat /noobaa-core/.nvmrc) && \
-    nvm install ${NODE_VER} && \
-    nvm alias default $(nvm current) && \
-    cd ~ && \
-    ln -sf $(which node) /usr/local/bin/node && \
-    ln -sf $(which npm) /usr/local/bin/npm
+FROM noobaa/builder as base
 WORKDIR /noobaa-core/
 
 #####################################################################
@@ -51,8 +8,9 @@ WORKDIR /noobaa-core/
 #   Cache: rebuild when ther is new package.json or package-lock.json
 #####################################################################
 COPY ./package*.json ./
-RUN npm install
-RUN echo 'PATH=$PATH:/noobaa-core/node_modules/.bin' >> ~/.bashrc
+RUN source /opt/rh/devtoolset-7/enable && \
+    npm install
+RUN echo 'PATH=$PATH:./node_modules/.bin' >> ~/.bashrc
 
 ##############################################################
 # Layers:
@@ -63,27 +21,36 @@ RUN echo 'PATH=$PATH:/noobaa-core/node_modules/.bin' >> ~/.bashrc
 ##############################################################
 COPY ./binding.gyp .
 COPY ./src/native ./src/native/
-RUN npm run build:native
+RUN source /opt/rh/devtoolset-7/enable && \
+    npm run build:native
 
 ##############################################################
 # Layers:
-#   Title: Building the frontend
+#   Title: Copying the code and Building the frontend
 #   Size: ~ 18 MB
-#   Cache: rebuild when there a change in the frontend directory 
-#
-##############################################################
-COPY ./frontend/ ./frontend/
-COPY ./src/tools/npm_install.js ./src/tools/
-RUN npm run build:fe
-
-##############################################################
-# Layers:
-#   Title: Building the frontend
-#   Size: ~ 139 MB 
-#   Cache: rebuild when tchanging any file 
+#   Cache: rebuild when changing any file 
 #          which is not excluded by .dockerignore 
 ##############################################################
 COPY . ./
+RUN source /opt/rh/devtoolset-7/enable && \
+    npm run build:fe
+
+
+##############################################################
+# Layers:
+#   Title: Setting the GIT Commit hash in the package.json
+#   Size: ~ 0 MB
+#   Cache: rebuild when using the --build-arg flag
+#
+# Setting GIT_COMMIT for the base
+# In order to set it we need to run build with 
+# --build-arg GIT_COMMIT=$(git rev-parse HEAD)
+##############################################################
+ARG GIT_COMMIT 
+#RUN GIT_COMMIT=$(git rev-parse HEAD) && \
+RUN current_version_line=$(grep version package.json) && \
+    current_package_version=$(echo ${current_version_line} | awk -F '"' '{print $4}') && \
+    sed -i "s/${current_version_line}/    \"version\": \"${current_package_version}-${GIT_COMMIT:0:7}\",/" package.json
 
 FROM base as unitest
 
@@ -94,9 +61,8 @@ FROM base as unitest
 #   Cache: rebuild when we adding/removing requirments
 ##############################################################
 ENV TEST_CONTAINER true
-RUN yum install -y -q centos-release-scl && \
-    yum install -y -q rh-mongodb36 && \
-    yum install -y ntpdate && \ 
+RUN yum install -y -q rh-mongodb36 && \
+    yum install -y -q ntpdate && \ 
     yum clean all
 
 ##############################################################
