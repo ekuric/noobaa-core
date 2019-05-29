@@ -37,8 +37,7 @@ const staticAssetsSelector = [
     '!src/assets/icons/*.svg'
 ];
 
-const libs = [
-    {
+const libs = [{
         name: 'knockout',
         module: 'dist/knockout.debug.js'
     },
@@ -143,7 +142,7 @@ gulp.task('build-lib', ['build-deps'], () => {
         noParse: true
     });
 
-    libs.forEach(lib =>  {
+    libs.forEach(lib => {
         const { module, name, exposeAs = name } = lib;
         const fullPath = path.join(cwd, libsPath, name, module);
         b.require(fullPath, { expose: exposeAs });
@@ -200,7 +199,7 @@ gulp.task('build-debug', ['lint-debug'], () => {
     return bundleCode('debug', false);
 });
 
-gulp.task('compile-styles', () => {
+gulp.task('compile-styles', ['install-deps'], () => {
     return gulp.src('src/app/**/*.less', { base: '.' })
         .pipe($.lessImport('styles.less'))
         .pipe($.sourcemaps.init())
@@ -321,7 +320,7 @@ gulp.task('watch-styles', ['compile-styles'], () => {
         // A workaround for https://github.com/stevelacy/gulp-less/issues/283#ref-issue-306992692
         // (with underlaying bug https://github.com/less/less.js/issues/3185)
         const fileManagers = less.environment && less.environment.fileManagers || [];
-        fileManagers.forEach(function (fileManager) {
+        fileManagers.forEach(function(fileManager) {
             const relativePath = path.relative(process.cwd(), event.path);
             if (fileManager.contents && fileManager.contents[relativePath]) {
                 // clear the changed file cache;
@@ -334,7 +333,7 @@ gulp.task('watch-styles', ['compile-styles'], () => {
 });
 
 gulp.task('watch-svg-icons', ['generate-svg-icons'], () => {
-    return $.watch([ 'src/assets/icons/*.svg' ], () => {
+    return $.watch(['src/assets/icons/*.svg'], () => {
         runSequence('generate-svg-icons');
     });
 });
@@ -377,12 +376,12 @@ function createBundler(folder, useWatchify) {
 
     if (useWatchify) {
         return browserify({
-            debug: true,
-            paths: paths,
-            cache: {},
-            packageCache: {},
-            plugin: [ watchify ]
-        })
+                debug: true,
+                paths: paths,
+                cache: {},
+                packageCache: {},
+                plugin: [watchify]
+            })
             .on('update', modules => console.log(
                 `[${moment().format('HH:mm:ss')}] Change detected in '${modules}' rebundling...`
             ))
@@ -436,7 +435,7 @@ function letsToLessClass() {
     return through.obj(function(file, encoding, callback) {
         const contents = file.contents.toString('utf-8');
         const regExp = /@([A-Za-z0-9\-]+)\s*\:\s*(.+?)\s*;/g;
-        const output =  [];
+        const output = [];
 
         let matches = regExp.exec(contents);
         while (matches) {
@@ -455,7 +454,7 @@ function letsToLessClass() {
 }
 
 function cssClassToJson() {
-    return through.obj(function (file, encoding, callback) {
+    return through.obj(function(file, encoding, callback) {
         const contents = file.contents.toString('utf-8');
         const regExp = /([A-Za-z0-9\-]+)\s*:\s*(.+?)\s*;/g;
         const output = {};
