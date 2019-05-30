@@ -1546,9 +1546,10 @@ class MDStore {
 
     /**
      * @param {nb.ChunkSchemaDB[]} chunks
+     * @param {?(a: any, b: any) => number} [sorter]
      * @return {Promise<void>}
      */
-    async load_blocks_for_chunks(chunks) {
+    async load_blocks_for_chunks(chunks, sorter) {
         if (!chunks || !chunks.length) return;
         const blocks = await this._blocks.col().find({
                 chunk: { $in: mongo_utils.uniq_ids(chunks, '_id') },
@@ -1559,7 +1560,8 @@ class MDStore {
         for (const chunk of chunks) {
             const blocks_by_frag = _.groupBy(blocks_by_chunk[chunk._id.toHexString()], 'frag');
             for (const frag of chunk.frags) {
-                frag.blocks = blocks_by_frag[frag._id.toHexString()];
+                const frag_blocks = blocks_by_frag[frag._id.toHexString()];
+                frag.blocks = sorter ? frag_blocks.sort(sorter) : frag_blocks;
             }
         }
     }

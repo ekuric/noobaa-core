@@ -440,7 +440,7 @@ class ObjectIO {
             });
             const mc = new MapClient({
                 chunks: map_chunks,
-                location_info: params.location_info,
+                location_info: this.location_info,
                 check_dups: true,
                 rpc_client: params.client,
                 desc: params.desc,

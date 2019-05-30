@@ -5,7 +5,6 @@
 
 const _ = require('lodash');
 const assert = require('assert');
-// const util = require('util');
 
 const P = require('../../util/promise');
 const dbg = require('../../util/debug_module')(__filename);
@@ -115,15 +114,17 @@ class GetMapping {
             const total_size = _.sumBy(chunks, 'size');
             await _prepare_chunks_group({ chunks, move_to_tier: this.move_to_tier, location_info: this.location_info });
             let done = false;
-            while (!done) {
+            let retries = 5;
+            while (!done && retries) {
                 const start_alloc_time = Date.now();
                 done = await this.allocate_chunks(chunks);
                 map_reporter.add_event(`allocate_chunks(${bucket.name})`, total_size, Date.now() - start_alloc_time);
                 if (!done) {
+                    retries -= 1;
                     const uniq_tiers = _.uniq(_.map(chunks, 'tier'));
                     await P.map(uniq_tiers, tier => ensure_room_in_tier(tier, bucket));
                     // TODO Decide if we want to update the chunks mappings when looping
-                    // await this.prepare_chunks_group(chunks, bucket);
+                    // await _prepare_chunks_group({ chunks, move_to_tier: this.move_to_tier, location_info: this.location_info });
                 }
             }
         }));
@@ -206,7 +207,7 @@ class GetMapping {
                     });
                     alloc.block_md.is_preallocated = true;
                 } catch (err) {
-                    dbg.warn('GetMapping: preallocate_block failed, will retry', alloc);
+                    dbg.warn('GetMapping: preallocate_block failed, will retry', alloc.block_md);
                     ok = false;
                 }
             });
@@ -371,12 +372,25 @@ class PutMapping {
 
 /**
  * @param {nb.Bucket} bucket
+ * @returns {Promise<nb.Tier>}
  */
 async function select_tier_for_write(bucket) {
     const tiering = bucket.tiering;
     await node_allocator.refresh_tiering_alloc(tiering);
     const tiering_status = node_allocator.get_tiering_status(tiering);
     return mapper.select_tier_for_write(tiering, tiering_status);
+}
+
+/**
+ * @param {nb.Tier} tier
+ * @param {nb.Tiering} tiering
+ * @param {nb.LocationInfo} location_info
+ * @returns {Promise<nb.TierMirror>}
+ */
+async function select_mirror_for_write(tier, tiering, location_info) {
+    await node_allocator.refresh_tiering_alloc(tiering);
+    const tiering_status = node_allocator.get_tiering_status(tiering);
+    return mapper.select_mirror_for_write(tier, tiering, tiering_status, location_info);
 }
 
 
@@ -468,13 +482,13 @@ function enough_room_in_tier(tier, bucket) {
         'free', tier_status.mirrors_storage.map(storage => (storage.free || 0))
     ));
     if (available_to_upload && available_to_upload.greater(config.ENOUGH_ROOM_IN_TIER_THRESHOLD)) {
-        dbg.log0('make_room_in_tier: has enough room', tier.name, available_to_upload.toJSNumber(), '>', config.ENOUGH_ROOM_IN_TIER_THRESHOLD);
+        dbg.log0('enough_room_in_tier: has enough room', tier.name, available_to_upload.toJSNumber(), '>', config.ENOUGH_ROOM_IN_TIER_THRESHOLD);
         map_reporter.add_event(`has_enough_room(${tier.name})`, available_to_upload.toJSNumber(), 0);
         return true;
     } else {
-        dbg.log0(`make_room_in_tier: not enough room ${tier.name}:`,
+        dbg.log0(`enough_room_in_tier: not enough room ${tier.name}:`,
             `${available_to_upload.toJSNumber()} < ${config.ENOUGH_ROOM_IN_TIER_THRESHOLD} should move chunks to next tier`);
-        map_reporter.add_event(`not_enough_room(${tier.name})`, available_to_upload.toJSNumber(), 0);
+        map_reporter.add_event(`enough_room_in_tier: not_enough_room(${tier.name})`, available_to_upload.toJSNumber(), 0);
         return false;
     }
 }
@@ -519,9 +533,13 @@ async function _prepare_chunks_group({ chunks, move_to_tier, location_info }) {
     for (const chunk of chunks) {
 
         chunk.is_accessible = false;
+        chunk.is_building_blocks = false;
+        chunk.is_building_frags = false;
         let num_accessible_frags = 0;
         for (const frag of chunk.frags) {
             frag.is_accessible = false;
+            frag.is_building_blocks = false;
+            frag.allocations = [];
             for (const block of frag.blocks) {
                 if (!block.node || !block.node._id) {
                     dbg.warn('ORPHAN BLOCK (ignoring)', block);
@@ -579,10 +597,14 @@ async function prepare_blocks(blocks) {
  * @return {Promise<nb.Block[]>} 
  */
 async function prepare_blocks_from_db(blocks) {
+    const chunk_ids = blocks.map(block => block.chunk);
+    const chunks = await MDStore.instance().find_chunks_by_ids(chunk_ids);
+    const chunks_by_id = _.keyBy(chunks, '_id');
     const db_blocks = blocks.map(block => {
-        const chunk = system_store.data.get_by_id(block.chunk);
-        const frag = system_store.data.get_by_id(block.frag);
-        const block_db = new BlockDB(block, frag, chunk);
+        const chunk_db = new ChunkDB(chunks_by_id[block.chunk.toHexString()]);
+        const frag_db = _.find(chunk_db.frags, frag =>
+            frag._id.toHexString() === block.frag.toHexString());
+        const block_db = new BlockDB(block, frag_db, chunk_db);
         return block_db;
     });
     await prepare_blocks(db_blocks);
@@ -593,6 +615,7 @@ async function prepare_blocks_from_db(blocks) {
 exports.GetMapping = GetMapping;
 exports.PutMapping = PutMapping;
 exports.select_tier_for_write = select_tier_for_write;
+exports.select_mirror_for_write = select_mirror_for_write;
 exports.make_room_in_tier = make_room_in_tier;
 exports.prepare_chunks = prepare_chunks;
 exports.prepare_blocks = prepare_blocks;
