@@ -60,7 +60,7 @@
     "yargs": "^11.0.0"
   },
   "scripts": {
-    "prepare": "[ \"$NB_NO_BUILD\" ] || npm run build",
+    "prepare": "npm run build",
     "build": "./node_modules/.bin/gulp build",
     "lint": "./node_modules/.bin/gulp lint-app",
     "test": "./node_modules/.bin/gulp test"
